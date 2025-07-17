@@ -1,7 +1,7 @@
 // Import the factory function directly from the generated JS file.
 // The '/game.js' path assumes game.js is in the public folder.
 // Vite will handle resolving this path correctly during the build.
-import createGameModule from 'src/wasm/game.js';';
+import createGameModule from 'src/wasm/game.js';
 
 // Represents the C++ Position struct
 export interface Position {
