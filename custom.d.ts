@@ -7,7 +7,7 @@
 // This declares a module for our Emscripten glue code.
 // It tells TypeScript that whenever we import '/game.js',
 // it should expect a default export that is a function returning a Promise.
-declare module '/game.js' {
+declare module './src/wasm/game.js' {
   const createGameModule: () => Promise<{
     Game: new () => {
       update(deltaTime: number): void;
@@ -17,3 +17,4 @@ declare module '/game.js' {
   }>;
   export default createGameModule;
 }
+
