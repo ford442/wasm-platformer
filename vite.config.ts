@@ -7,9 +7,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     // This alias tells Vite how to resolve the non-relative 'src/...' imports.
-    // It mirrors the 'baseUrl' configuration in tsconfig.json.
+    // We are making the alias more specific to target the exact file that is failing.
     alias: {
-      'src': path.resolve(__dirname, './src'),
+      'src/wasm/game.js': path.resolve(__dirname, 'src/wasm/game.js'),
     },
   },
 })
