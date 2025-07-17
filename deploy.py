@@ -43,7 +43,7 @@ def main():
     """
     Main function to connect to the server and start the upload process.
     """
-    password = getpass.getpass(f"Enter password for {USERNAME}@{HOSTNAME}: ")
+    password = 'GoogleBez12!' # getpass.getpass(f"Enter password for {USERNAME}@{HOSTNAME}: ")
 
     transport = None
     sftp = None
