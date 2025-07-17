@@ -1,4 +1,3 @@
-!cd /content/RAMDRIVE2/wasm-platformer/
 import os
 import paramiko
 import getpass
