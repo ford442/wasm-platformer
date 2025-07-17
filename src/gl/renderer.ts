@@ -1,7 +1,9 @@
 import vertexShaderSource from './shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from './shaders/basic.frag.glsl?raw';
 
-export interface Position {
+// This interface is defined in the loader, but we can redefine it here
+// for clarity or import it.
+interface LocalPosition {
   x: number;
   y: number;
 }
@@ -11,7 +13,8 @@ export class Renderer {
   private program: WebGLProgram;
   private positionAttributeLocation: number;
   private modelPositionUniformLocation: WebGLUniformLocation | null;
-  private positionBuffer: WebGLBuffer | null;
+  // FIX: Initialize property to null to satisfy strict initialization rules.
+  private positionBuffer: WebGLBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('webgl2');
@@ -22,17 +25,13 @@ export class Renderer {
     const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fragmentShaderSource);
     this.program = this.createProgram(vertexShader, fragmentShader);
 
-    // Get the location of the 'a_position' attribute
     this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
-    
-    // Get the location of our new 'u_model_position' uniform
     this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupGeometry();
   }
 
-  // --- Private Helper Methods (compileShader, createProgram) remain the same ---
   private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type);
     if (!shader) throw new Error('Could not create shader.');
@@ -59,21 +58,9 @@ export class Renderer {
     }
     return program;
   }
-  // --- End of Helper Methods ---
 
-  /**
-   * Sets up the geometry (the square) once, so we don't recreate it every frame.
-   */
   private setupGeometry() {
-    // A square with a side length of 0.2, centered at (0,0)
-    const positions = new Float32Array([
-      -0.1, -0.1,  // Triangle 1
-       0.1, -0.1,
-      -0.1,  0.1,
-      -0.1,  0.1,   // Triangle 2
-       0.1, -0.1,
-       0.1,  0.1,
-    ]);
+    const positions = new Float32Array([-0.1,-0.1, 0.1,-0.1, -0.1,0.1, -0.1,0.1, 0.1,-0.1, 0.1,0.1]);
     this.positionBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
@@ -84,23 +71,13 @@ export class Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
-  /**
-   * The main drawing function, now accepts a position for the object.
-   * @param modelPosition The {x, y} position to draw the object at.
-   */
-  public draw(modelPosition: Position) {
+  public draw(modelPosition: LocalPosition) {
     this.clear();
     this.gl.useProgram(this.program);
-
-    // Set the uniform value for the object's position
     this.gl.uniform2f(this.modelPositionUniformLocation, modelPosition.x, modelPosition.y);
-
-    // Tell WebGL how to pull data from our geometry buffer
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-
-    // Draw the 6 vertices of our square
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 }
