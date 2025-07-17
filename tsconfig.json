@@ -14,7 +14,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+
+    /* Path Aliasing */
+    "baseUrl": ".",
+    "paths": {
+      "/game.js": ["./public/game.js"]
+    }
   },
   "include": ["src", "custom.d.ts"]
 }
