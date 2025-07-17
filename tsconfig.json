@@ -15,12 +15,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Path Aliasing */
-    "baseUrl": ".",
-    "paths": {
-      "/game.js": ["./public/game.js"]
-    }
+    "baseUrl": "."
   },
   "include": ["src", "custom.d.ts"]
 }
