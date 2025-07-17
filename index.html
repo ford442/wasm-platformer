@@ -9,13 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-
-    <!-- CRITICAL: Load the Emscripten glue code before the main application script -->
-    <script src="/game.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <!-- This loads your React application -->
+    <!-- We only need to load our main application entry point. -->
+    <!-- Vite will handle bundling the imported game.js correctly. -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
