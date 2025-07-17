@@ -9,7 +9,7 @@ Technical Architecture
 Core Logic: C++
 Compilation Target: WebAssembly (via Emscripten)
 Frontend/Bridge: TypeScript
-Rendering: HTML Canvas 2D📋
+Rendering: WebGL2 vis HTML Canvas 📋
 Current Status
 Currently in Phase 1: The Foundation. 
 We are setting up the initial project structure, C++ to WASM compilation pipeline, and basic player rendering.🏗️ 
