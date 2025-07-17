@@ -17,6 +17,3 @@ declare module '/game.js' {
   }>;
   export default createGameModule;
 }
-```
-
-After updating your `custom.d.ts` file with this new content, please restart your build process. This should resolve all the `TS2307` erro
