@@ -1,25 +1,26 @@
-// This interface defines the structure of our WASM module once it's loaded.
-// It helps TypeScript understand what functions are available.
-export interface GameModule {
-  getPlayerStartX: () => number;
-  // We will add more functions here as we create them in C++.
+export interface Position {
+  x: number;
+  y: number;
 }
 
-// This function loads the Emscripten-generated 'game.js' glue code
-// and initializes the WebAssembly module.
+// Represents the C++ Game class instance
+export interface Game {
+  update(deltaTime: number): void;
+  getPlayerPosition(): Position;
+  // This is important for memory management
+  delete(): void;
+}
+
+// Represents the factory that creates the Game instance
+export interface GameModule {
+  Game: { new(): Game };
+}
+
 export const loadWasmModule = async (): Promise<GameModule> => {
-  // The 'createGameModule' function is the global export from game.js,
-  // which we defined with the EXPORT_NAME build flag.
-  // We need to tell TypeScript that this function might exist on the window object.
   const factory = (window as any).createGameModule;
-
   if (!factory) {
-    throw new Error("WASM module factory not found. Did you include game.js?");
+    throw new Error("WASM module factory not found. Did you include game.js in your public folder and recompile?");
   }
-
-  // Calling the factory function initializes the module and returns a promise
-  // that resolves with the module instance.
   const module = await factory();
-  
   return module as GameModule;
 };
