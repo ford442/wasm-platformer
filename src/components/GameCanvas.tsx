@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 // We need to create and import our loader
 // import { loadWasmModule, GameModule } from '../wasm/loader'; 
+import { Renderer } from '../gl/renderer';
 
 // --- Start of loader.ts for self-contained example ---
 // In a real project, this would be in a separate file: src/wasm/loader.ts
@@ -22,59 +23,37 @@ export const loadWasmModule = async (): Promise<GameModule> => {
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // State to hold the loaded WASM module instance
-  const [wasmModule, setWasmModule] = useState<GameModule | null>(null);
-  // State to hold the value returned from C++
-  const [playerX, setPlayerX] = useState<number | null>(null);
-  // State for loading status
-  const [status, setStatus] = useState('Loading WASM...');
+  // We use a ref to hold the renderer instance so it persists across re-renders
+  // without causing the component to update.
+  const rendererRef = useRef<Renderer | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error("Canvas element not found!");
+      return;
+    }
 
-    // Asynchronously load the WASM module
-    loadWasmModule()
-      .then(module => {
-        setWasmModule(module);
-        setStatus('WASM Loaded. Calling C++...');
+    // Prevent re-initialization
+    if (!rendererRef.current) {
+      try {
+        // 1. Initialize our WebGL2 Renderer
+        rendererRef.current = new Renderer(canvas);
         
-        // Call the C++ function through the module
-        const startX = module.getPlayerStartX();
-        setPlayerX(startX);
-        
-        setStatus(`C++ returned: ${startX}`);
-      })
-      .catch(error => {
-        console.error("Failed to load WASM module:", error);
-        setStatus('Error loading WASM!');
-      });
+        // 2. Perform the initial draw
+        rendererRef.current.draw();
 
-  }, []); // Empty dependency array ensures this runs only once
+        // In the future, we will start a requestAnimationFrame loop here
+        // to continuously update and draw the game state.
+        console.log("WebGL2 Renderer initialized successfully.");
 
-  // Effect to draw on the canvas when the status changes
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (context) {
-      // Clear canvas
-      context.fillStyle = '#000';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Display current status
-      context.fillStyle = 'white';
-      context.font = '20px Orbitron';
-      context.textAlign = 'center';
-      context.fillText(status, canvas.width / 2, canvas.height / 2);
-
-      // If we have the player position, draw a simple representation
-      if (playerX !== null) {
-        context.fillStyle = 'var(--primary-color)';
-        context.fillRect(playerX, canvas.height / 2 + 50, 50, 50); // Draw a square for our "player"
+      } catch (error) {
+        console.error("Failed to initialize WebGL2 Renderer:", error);
+        // You could display a user-friendly error message on the canvas here
       }
     }
-  }, [status, playerX]); // Redraw whenever the status or playerX changes
+
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const canvasStyle: React.CSSProperties = {
     width: '100%',
