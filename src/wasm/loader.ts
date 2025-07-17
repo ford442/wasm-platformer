@@ -22,14 +22,11 @@ export interface GameModule {
 }
 
 export const loadWasmModule = async (): Promise<GameModule> => {
-  // The imported 'createGameModule' is the factory function itself.
-  if (!createGameModule) {
-    throw new Error("WASM module factory could not be imported. Check the path and that game.js is an ES6 module.");
+  // Look for the function on the window object
+  const factory = (window as any).createGameModule;
+  if (!factory) {
+    throw new Error("WASM module factory not found on window. Did game.js load correctly from the script tag in index.html?");
   }
-  
-  // Calling the factory function initializes the module and returns a promise
-  // that resolves with the module instance.
-  const module = await createGameModule();
-  
+  const module = await factory();
   return module as GameModule;
 };
