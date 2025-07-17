@@ -7,8 +7,7 @@ export interface Position {
 export interface Game {
   update(deltaTime: number): void;
   getPlayerPosition(): Position;
-  // This is important for memory management
-  delete(): void;
+  delete(): void; // Important for memory management
 }
 
 // Represents the factory that creates the Game instance
