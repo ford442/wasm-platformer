@@ -1,3 +1,9 @@
+// Import the factory function directly from the generated JS file.
+// The '/game.js' path assumes game.js is in the public folder.
+// Vite will handle resolving this path correctly during the build.
+import createGameModule from '/game.js';
+
+// Represents the C++ Position struct
 export interface Position {
   x: number;
   y: number;
@@ -16,10 +22,14 @@ export interface GameModule {
 }
 
 export const loadWasmModule = async (): Promise<GameModule> => {
-  const factory = (window as any).createGameModule;
-  if (!factory) {
-    throw new Error("WASM module factory not found. Did you include game.js in your public folder and recompile?");
+  // The imported 'createGameModule' is the factory function itself.
+  if (!createGameModule) {
+    throw new Error("WASM module factory could not be imported. Check the path and that game.js is an ES6 module.");
   }
-  const module = await factory();
+  
+  // Calling the factory function initializes the module and returns a promise
+  // that resolves with the module instance.
+  const module = await createGameModule();
+  
   return module as GameModule;
 };
