@@ -20,6 +20,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"], // CRITICAL: This line ensures TS includes everything in the 'src' folder.
+  "include": [
+    "src",
+    "custom.d.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
