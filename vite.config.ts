@@ -1,15 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import wasm from 'vite-plugin-wasm'
+import topLevelAwait from 'vite-plugin-top-level-await'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    // This alias tells Vite how to resolve the non-relative 'src/...' imports.
-    // We are making the alias more specific to target the exact file that is failing.
-    alias: {
-      'src/wasm/game.js': path.resolve(__dirname, 'src/wasm/game.js'),
-    },
-  },
+  plugins: [
+    react(),
+    // This plugin handles importing .wasm files and their JS glue code.
+    wasm(),
+    // This plugin is required by the wasm plugin to work correctly.
+    topLevelAwait()
+  ],
 })
