@@ -1,35 +1,34 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+// FIX: Import the GameCanvas component.
+import GameCanvas from './GameCanvas';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  const appStyle: React.CSSProperties = {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', padding: '2rem', gap: '1.5rem',
+    width: '100%', height: '100vh', boxSizing: 'border-box'
+  };
+  const headerStyle: React.CSSProperties = {
+    fontFamily: 'var(--primary-font)', fontSize: '3rem',
+    color: 'var(--primary-color)', textShadow: '0 0 10px var(--primary-color)',
+    margin: 0,
+  };
+  const gameContainerStyle: React.CSSProperties = {
+    width: '100%', maxWidth: '1280px', aspectRatio: '16 / 9',
+    display: 'flex', justifyContent: 'center', alignItems: 'center',
+  };
+  const footerStyle: React.CSSProperties = {
+    fontFamily: 'var(--primary-font)', fontSize: '1rem',
+    color: 'var(--text-color)', opacity: 0.7
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div style={appStyle}>
+      <h1 style={headerStyle}>WASM-Venture</h1>
+      <div style={gameContainerStyle}>
+        <GameCanvas />
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
-
-export default App
+      <p style={footerStyle}>Powered by C++, WebAssembly, React, and WebGL2</p>
+    </div>
+  );
+};
