@@ -1,13 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import { Renderer } from '../gl/renderer';
-import { loadWasmModule, Game, GameModule } from '../wasm/loader';
+// FIX: Use 'type' for type-only imports to satisfy verbatimModuleSyntax.
+import { loadWasmModule, type Game, type GameModule } from '../wasm/loader';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Refs to hold our core engine components
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
-  // Ref to hold the ID of the animation frame, so we can cancel it on cleanup
   const animationFrameId = useRef<number>(0);
 
   useEffect(() => {
@@ -15,32 +14,21 @@ const GameCanvas = () => {
     if (!canvas) return;
 
     let lastTime = 0;
-    let game: Game; // Hold the game instance locally within the effect
 
     const initialize = async () => {
       try {
-        // 1. Load the WASM module
         const wasmModule: GameModule = await loadWasmModule();
-
-        // 2. Instantiate the C++ Game class
-        game = new wasmModule.Game();
+        const game = new wasmModule.Game();
         gameInstanceRef.current = game;
-
-        // 3. Initialize our WebGL2 Renderer
         rendererRef.current = new Renderer(canvas);
-        
-        // 4. Start the game loop
         lastTime = performance.now();
         gameLoop(lastTime);
-
       } catch (error) {
         console.error("Failed to initialize the game:", error);
       }
     };
 
-    // The core game loop function
     const gameLoop = (timestamp: number) => {
-      // Calculate delta time in seconds
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
 
@@ -48,45 +36,32 @@ const GameCanvas = () => {
       const gameInstance = gameInstanceRef.current;
 
       if (renderer && gameInstance) {
-        // a. Update the game state in C++
         gameInstance.update(deltaTime);
-
-        // b. Get the new position from C++
         const playerPosition = gameInstance.getPlayerPosition();
-
-        // c. Draw the scene with the new position
         renderer.draw(playerPosition);
       }
-
-      // d. Request the next frame
       animationFrameId.current = requestAnimationFrame(gameLoop);
     };
 
     initialize();
 
-    // Cleanup function: This runs when the component is unmounted
     return () => {
       console.log("Cleaning up game resources...");
-      // Stop the game loop
       cancelAnimationFrame(animationFrameId.current);
-      
-      // Important: Free the C++ memory allocated for the game instance
       if (gameInstanceRef.current) {
         gameInstanceRef.current.delete();
       }
     };
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
   const canvasStyle: React.CSSProperties = {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#000',
-    borderRadius: '8px',
-    boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
+    width: '100%', height: '100%', backgroundColor: '#000',
+    borderRadius: '8px', boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
     border: '2px solid var(--primary-color)'
   };
 
   return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
 };
 
-
+// FIX: Export the component so it can be imported by App.tsx
+export default GameCanvas;
