@@ -1,59 +1,81 @@
-// --- File: src/components/GameCanvas.tsx ---
-// This component now loads our WASM module and calls a C++ function.
-import React, { useRef, useEffect, useState } from 'react';
-// We need to create and import our loader
-// import { loadWasmModule, GameModule } from '../wasm/loader'; 
+import React, { useRef, useEffect } from 'react';
 import { Renderer } from '../gl/renderer';
-
-// --- Start of loader.ts for self-contained example ---
-// In a real project, this would be in a separate file: src/wasm/loader.ts
-export interface GameModule {
-  getPlayerStartX: () => number;
-}
-export const loadWasmModule = async (): Promise<GameModule> => {
-  const factory = (window as any).createGameModule;
-  if (!factory) {
-    throw new Error("WASM module factory not found. Did you include game.js in your public folder?");
-  }
-  const module = await factory();
-  return module as GameModule;
-};
-// --- End of loader.ts ---
-
+import { loadWasmModule, Game, GameModule } from '../wasm/loader';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // We use a ref to hold the renderer instance so it persists across re-renders
-  // without causing the component to update.
+  // Refs to hold our core engine components
   const rendererRef = useRef<Renderer | null>(null);
+  const gameInstanceRef = useRef<Game | null>(null);
+  // Ref to hold the ID of the animation frame, so we can cancel it on cleanup
+  const animationFrameId = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      console.error("Canvas element not found!");
-      return;
-    }
+    if (!canvas) return;
 
-    // Prevent re-initialization
-    if (!rendererRef.current) {
+    let lastTime = 0;
+    let game: Game; // Hold the game instance locally within the effect
+
+    const initialize = async () => {
       try {
-        // 1. Initialize our WebGL2 Renderer
+        // 1. Load the WASM module
+        const wasmModule: GameModule = await loadWasmModule();
+
+        // 2. Instantiate the C++ Game class
+        game = new wasmModule.Game();
+        gameInstanceRef.current = game;
+
+        // 3. Initialize our WebGL2 Renderer
         rendererRef.current = new Renderer(canvas);
         
-        // 2. Perform the initial draw
-        rendererRef.current.draw();
-
-        // In the future, we will start a requestAnimationFrame loop here
-        // to continuously update and draw the game state.
-        console.log("WebGL2 Renderer initialized successfully.");
+        // 4. Start the game loop
+        lastTime = performance.now();
+        gameLoop(lastTime);
 
       } catch (error) {
-        console.error("Failed to initialize WebGL2 Renderer:", error);
-        // You could display a user-friendly error message on the canvas here
+        console.error("Failed to initialize the game:", error);
       }
-    }
+    };
 
-  }, []); // Empty dependency array ensures this runs only once on mount
+    // The core game loop function
+    const gameLoop = (timestamp: number) => {
+      // Calculate delta time in seconds
+      const deltaTime = (timestamp - lastTime) / 1000.0;
+      lastTime = timestamp;
+
+      const renderer = rendererRef.current;
+      const gameInstance = gameInstanceRef.current;
+
+      if (renderer && gameInstance) {
+        // a. Update the game state in C++
+        gameInstance.update(deltaTime);
+
+        // b. Get the new position from C++
+        const playerPosition = gameInstance.getPlayerPosition();
+
+        // c. Draw the scene with the new position
+        renderer.draw(playerPosition);
+      }
+
+      // d. Request the next frame
+      animationFrameId.current = requestAnimationFrame(gameLoop);
+    };
+
+    initialize();
+
+    // Cleanup function: This runs when the component is unmounted
+    return () => {
+      console.log("Cleaning up game resources...");
+      // Stop the game loop
+      cancelAnimationFrame(animationFrameId.current);
+      
+      // Important: Free the C++ memory allocated for the game instance
+      if (gameInstanceRef.current) {
+        gameInstanceRef.current.delete();
+      }
+    };
+  }, []); // Empty dependency array ensures this runs only once
 
   const canvasStyle: React.CSSProperties = {
     width: '100%',
