@@ -10,12 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- IMPORTANT: Load the Emscripten glue code before the main application script -->
-    <script type="module" src="/game.js"></script>
+    <!-- CRITICAL: Load the Emscripten glue code before the main application script -->
+    <script src="/game.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <!-- CRITICAL FIX: Point to main.tsx, the standard Vite entry point -->
+    <!-- This loads your React application -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
