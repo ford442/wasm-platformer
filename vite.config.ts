@@ -6,10 +6,10 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    // This alias tells Vite how to resolve the '/game.js' import during the build.
-    // It mirrors the 'paths' configuration in tsconfig.json.
+    // This alias tells Vite how to resolve the non-relative 'src/...' imports.
+    // It mirrors the 'baseUrl' configuration in tsconfig.json.
     alias: {
-      '/game.js': path.resolve(__dirname, './public/game.js'),
+      'src': path.resolve(__dirname, './src'),
     },
   },
 })
