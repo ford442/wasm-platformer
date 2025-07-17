@@ -1,13 +1,16 @@
 #version 300 es
 
-// This is an "attribute" - an input to the vertex shader that comes from a buffer.
-// It represents the position (x, y) of a single vertex.
+// INPUT: The position of a vertex in the object's local space.
 in vec2 a_position;
 
-// This is the main function that runs for every vertex.
+// UNIFORM: A global variable passed from our JS/C++ code.
+// This will represent the object's position in the world.
+uniform vec2 u_model_position;
+
 void main() {
-  // gl_Position is a special, built-in variable that determines the final
-  // position of the vertex on the screen.
-  // We create a 4D vector (x, y, z, w) because that's what the graphics pipeline expects.
-  gl_Position = vec4(a_position, 0.0, 1.0);
+  // Calculate the final position by adding the object's world position
+  // to the vertex's local position.
+  vec2 final_position = a_position + u_model_position;
+
+  gl_Position = vec4(final_position, 0.0, 1.0);
 }
