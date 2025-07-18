@@ -1,3 +1,9 @@
+/*
+================================================================================
+  FILE: cpp/src/Game.cpp (Corrected)
+================================================================================
+  Instructions: Replace the contents of your existing Game.cpp file with this.
+*/
 #include "Game.hpp"
 #include <cmath>
 
@@ -6,14 +12,16 @@ Game::Game() {
     playerVelocity = {0.0f, 0.0f};
     playerSize = {0.2f, 0.2f}; // Player is 0.2x0.2 units
 
-    // --- Define our level's platforms ---
-    platforms.push_back({ {0.0f, -0.8f}, {4.0f, 0.2f} });  // A wide floor
-    platforms.push_back({ {1.5f, -0.2f}, {1.0f, 0.2f} });  // A middle platform
-    platforms.push_back({ {-1.5f, 0.2f}, {1.0f, 0.2f} }); // A higher platform
+    // --- Define our level's platforms (Corrected Coordinates) ---
+    // A wide floor within the screen bounds
+    platforms.push_back({ {0.0f, -0.8f}, {1.8f, 0.2f} });
+    // A platform on the right side
+    platforms.push_back({ {0.7f, -0.2f}, {0.6f, 0.2f} });
+    // A platform on the left side
+    platforms.push_back({ {-0.7f, 0.2f}, {0.6f, 0.2f} });
 }
 
 void Game::handleInput(const InputState& input) {
-    // ... (handleInput logic remains the same)
     if (input.left) {
         playerVelocity.x = -moveSpeed;
     } else if (input.right) {
@@ -44,7 +52,7 @@ void Game::update(float deltaTime) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
             // A simple collision resolution:
             // If the player was moving down, stop them on top of the platform.
-            if (playerVelocity.y < 0) {
+            if (playerVelocity.y <= 0) {
                 // Place player directly on top of the platform
                 playerPosition.y = platform.position.y + (platform.size.y / 2) + (playerSize.y / 2);
                 playerVelocity.y = 0;
