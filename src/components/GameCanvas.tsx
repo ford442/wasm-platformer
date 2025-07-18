@@ -16,6 +16,9 @@ const GameCanvas = () => {
     'Space': false,
   });
 
+  const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
+  const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
+  
   // Effect to add and remove keyboard event listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,6 +56,12 @@ const GameCanvas = () => {
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         rendererRef.current = new Renderer(canvas);
+        const [pTex, platTex] = await Promise.all([
+          renderer.loadTexture(WAZZY_SPRITE_URL),
+          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+        ]);
+        setPlayerTexture(pTex);
+        setPlatformTexture(platTex);
         lastTime = performance.now();
         gameLoop(lastTime);
       } catch (error) {
