@@ -26,7 +26,7 @@ export class Renderer {
   private colorUniformLocation: WebGLUniformLocation | null; // New uniform for color
   
   // A single buffer for a unit square (1x1). We'll scale it with uniforms.
-  private unitSquareBuffer: WebGLBuffer | null;
+  private unitSquareBuffer: WebGLBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('webgl2');
