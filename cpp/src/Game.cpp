@@ -38,46 +38,47 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Horizontal Movement ---
-    // Apply horizontal movement first.
-    playerPosition.x += playerVelocity.x * deltaTime;
-    // (A real game would check for wall collisions here)
-
-    // --- Vertical Movement ---
-    // Apply gravity and update vertical position.
-    playerVelocity.y += gravity * deltaTime;
+    // --- Vertical Movement and Physics ---
+    // Only apply gravity if the player is in the air.
+    if (!isGrounded) {
+        playerVelocity.y += gravity * deltaTime;
+    }
+    // Update vertical position based on velocity.
     playerPosition.y += playerVelocity.y * deltaTime;
 
     // --- Collision Resolution ---
+    // Assume we are in the air until a collision proves otherwise.
     isGrounded = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
-            float playerBottom = playerPosition.y - playerSize.y / 2.0f;
-            float playerLeft = playerPosition.x - playerSize.x / 2.0f;
-            float playerRight = playerPosition.x + playerSize.x / 2.0f;
+            // Check if the player is moving downwards and is intersecting the platform from above.
+            if (playerVelocity.y <= 0) {
+                float playerBottom = playerPosition.y - playerSize.y / 2.0f;
+                float platformTop = platform.position.y + platform.size.y / 2.0f;
 
-            float platformTop = platform.position.y + platform.size.y / 2.0f;
-            float platformLeft = platform.position.x - platform.size.x / 2.0f;
-            float platformRight = platform.position.x + platform.size.x / 2.0f;
-
-            // Check if the player is intersecting from above and moving downwards.
-            if (playerVelocity.y <= 0 && playerBottom < platformTop && playerRight > platformLeft && playerLeft < platformRight) {
-                // Calculate the penetration depth.
-                float penetration = platformTop - playerBottom;
-                // Correct the player's position by moving them up by exactly the penetration amount.
-                playerPosition.y += penetration;
-                
-                // If the player's vertical velocity is significant, stop it.
-                if (playerVelocity.y < 0) {
+                // Make sure we only resolve collision if the player is actually above the platform.
+                if (playerBottom < platformTop) {
+                    // Calculate how far the player has sunk into the platform.
+                    float penetration = platformTop - playerBottom;
+                    // Correct the player's position by moving them up by exactly that amount.
+                    playerPosition.y += penetration;
+                    
+                    // Stop all vertical movement.
                     playerVelocity.y = 0;
+                    isGrounded = true;
+                    break; // We've landed, so we can stop checking other platforms.
                 }
-                isGrounded = true;
-                break; // We've landed, no need to check other platforms.
             }
         }
     }
+
+    // --- Horizontal Movement ---
+    // Apply horizontal movement *after* all vertical physics and collisions are resolved.
+    playerPosition.x += playerVelocity.x * deltaTime;
+    // (In a full game, we would check for wall collisions here)
     
     // --- Update Camera ---
+    // The camera's position is updated last, based on the final, stable player position.
     cameraPosition.x = playerPosition.x;
 }
 
