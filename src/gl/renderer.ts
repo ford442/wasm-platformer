@@ -94,13 +94,18 @@ export class Renderer {
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
 
-    this.gl.enableVertexAttribArray(this.positionAttributeLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
-    this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    // FIX: Check for valid attribute locations before using them.
+    if (this.positionAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.positionAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
 
-    this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
-    this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    if (this.texCoordAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+        this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
 
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
