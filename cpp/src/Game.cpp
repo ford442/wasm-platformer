@@ -2,18 +2,24 @@
 #include <cmath>
 
 Game::Game() {
-    playerPosition = {0.0f, 0.0f};
+    playerPosition = {0.0f, 0.5f}; // Start a bit higher
     playerVelocity = {0.0f, 0.0f};
+    playerSize = {0.2f, 0.2f}; // Player is 0.2x0.2 units
+
+    // --- Define our level's platforms ---
+    platforms.push_back({ {0.0f, -0.8f}, {4.0f, 0.2f} });  // A wide floor
+    platforms.push_back({ {1.5f, -0.2f}, {1.0f, 0.2f} });  // A middle platform
+    platforms.push_back({ {-1.5f, 0.2f}, {1.0f, 0.2f} }); // A higher platform
 }
 
-// New method to update player velocity based on input
 void Game::handleInput(const InputState& input) {
+    // ... (handleInput logic remains the same)
     if (input.left) {
         playerVelocity.x = -moveSpeed;
     } else if (input.right) {
         playerVelocity.x = moveSpeed;
     } else {
-        playerVelocity.x = 0; // Stop moving if no horizontal input
+        playerVelocity.x = 0;
     }
 
     if (input.jump && isGrounded) {
@@ -23,8 +29,6 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Physics Update ---
-
     // Apply gravity
     playerVelocity.y += gravity * deltaTime;
 
@@ -32,15 +36,45 @@ void Game::update(float deltaTime) {
     playerPosition.x += playerVelocity.x * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
-    // --- Simple Collision Detection (floor) ---
-    // This is a temporary floor to prevent falling forever.
-    if (playerPosition.y < -0.5f) {
-        playerPosition.y = -0.5f;
-        playerVelocity.y = 0;
-        isGrounded = true;
+    // Assume we are not grounded until a collision proves otherwise
+    isGrounded = false;
+
+    // --- Collision Detection and Resolution ---
+    for (const auto& platform : platforms) {
+        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
+            // A simple collision resolution:
+            // If the player was moving down, stop them on top of the platform.
+            if (playerVelocity.y < 0) {
+                // Place player directly on top of the platform
+                playerPosition.y = platform.position.y + (platform.size.y / 2) + (playerSize.y / 2);
+                playerVelocity.y = 0;
+                isGrounded = true;
+            }
+        }
     }
+}
+
+// AABB (Axis-Aligned Bounding Box) collision detection function
+bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
+    // Calculate the half-sizes for easier calculation
+    float aHalfX = sizeA.x / 2.0f;
+    float aHalfY = sizeA.y / 2.0f;
+    float bHalfX = sizeB.x / 2.0f;
+    float bHalfY = sizeB.y / 2.0f;
+
+    // Check for overlap on the X axis
+    bool collisionX = (posA.x + aHalfX >= posB.x - bHalfX) && (posB.x + bHalfX >= posA.x - aHalfX);
+    // Check for overlap on the Y axis
+    bool collisionY = (posA.y + aHalfY >= posB.y - bHalfY) && (posB.y + bHalfY >= posA.y - aHalfY);
+
+    // Collision only occurs if there is overlap on both axes
+    return collisionX && collisionY;
 }
 
 Vec2 Game::getPlayerPosition() const {
     return playerPosition;
+}
+
+const std::vector<Platform>& Game::getPlatforms() const {
+    return platforms;
 }
