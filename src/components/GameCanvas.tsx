@@ -7,8 +7,6 @@ const GameCanvas = () => {
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
   const animationFrameId = useRef<number>(0);
-  const keysRef = useRef<Record<string, boolean>>({ /* ... no changes ... */ });
-
 
   // FIX: Use a ref to store input state.
   // This avoids issues with stale state in the game loop's closure.
