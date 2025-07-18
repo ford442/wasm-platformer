@@ -1,28 +1,30 @@
-// Import the factory function directly from the generated JS file.
-// The '/game.js' path assumes game.js is in the public folder.
-// Vite will handle resolving this path correctly during the build.
-import createGameModule from '/content/RAMDRIVE2/wasm-platformer/dist/game.js';
-
-// Represents the C++ Position struct
 export interface Position {
   x: number;
   y: number;
 }
 
-// Represents the C++ Game class instance
-export interface Game {
-  update(deltaTime: number): void;
-  getPlayerPosition(): Position;
-  delete(): void; // Important for memory management
+// FIX: Add the definition for the InputState struct
+export interface InputState {
+  left: boolean;
+  right: boolean;
+  jump: boolean;
 }
 
-// Represents the factory that creates the Game instance
+// FIX: Add the new handleInput method to the Game interface
+export interface Game {
+  update(deltaTime: number): void;
+  handleInput(inputState: InputState): void;
+  getPlayerPosition(): Position;
+  delete(): void;
+}
+
 export interface GameModule {
   Game: { new(): Game };
 }
 
+// This loader function finds the WASM module on the global window object.
+// This is the most reliable method and avoids module resolution errors.
 export const loadWasmModule = async (): Promise<GameModule> => {
-  // Look for the function on the window object
   const factory = (window as any).createGameModule;
   if (!factory) {
     throw new Error("WASM module factory not found on window. Did game.js load correctly from the script tag in index.html?");
