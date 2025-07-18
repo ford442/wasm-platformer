@@ -1,14 +1,3 @@
-/*
-================================================================================
-  FILE: src/gl/renderer.ts (Updated for Scrolling)
-================================================================================
-*/
-// Note: The fragment shader does not need to be changed.
-
-// Interfaces to match the C++ structs
-export interface Vec2 { x: number; y: number; }
-export interface Platform { position: Vec2; size: Vec2; }
-
 export class Renderer {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
@@ -38,7 +27,6 @@ export class Renderer {
     this.setupUnitSquare();
   }
 
-  // FIX: Provide the full, robust implementation for the shader compiler.
   private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type);
     if (!shader) {
@@ -54,7 +42,6 @@ export class Renderer {
     return shader;
   }
 
-  // FIX: Provide the full, robust implementation for the program linker.
   private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
     const program = this.gl.createProgram();
     if (!program) {
@@ -103,4 +90,3 @@ export class Renderer {
     this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
   }
 }
-
