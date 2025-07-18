@@ -1,5 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2 } from '../wasm/loader';
+// FIX: Correctly import Renderer from its file, and Platform from the loader.
+import { Renderer } from '../gl/renderer';
+import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
 import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
