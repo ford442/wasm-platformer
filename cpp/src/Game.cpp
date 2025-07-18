@@ -26,9 +26,18 @@ void Game::handleInput(const InputState& input) {
         playerVelocity.x = 0;
     }
 
-    if (input.jump && isGrounded) {
+    // FIX: Implement jump edge detection as you suggested.
+    // A jump can only be initiated if the key is pressed, the player is grounded,
+    // and the player is "allowed" to jump (i.e., the key was released since the last jump).
+    if (input.jump && isGrounded && canJump) {
         playerVelocity.y = jumpStrength;
         isGrounded = false;
+        canJump = false; // Disallow another jump until the key is released.
+    }
+
+    // Reset the ability to jump once the jump key is released.
+    if (!input.jump) {
+        canJump = true;
     }
 }
 
@@ -53,10 +62,8 @@ void Game::update(float deltaTime) {
 
             // If we are moving down and intersecting the platform from above, it's a landing.
             if (playerVelocity.y <= 0 && playerBottom < platformTop) {
-                // FIX: Use penetration resolution for a stable landing.
-                // Calculate how far the player has sunk into the platform.
+                // Use penetration resolution for a stable landing.
                 float penetration = platformTop - playerBottom;
-                // Correct the player's position by moving them up by the penetration amount.
                 playerPosition.y += penetration;
                 
                 playerVelocity.y = 0;
