@@ -1,25 +1,46 @@
 #include "Game.hpp"
-#include <cmath> // For std::sin
+#include <cmath>
 
-// Constructor
 Game::Game() {
-    playerPosition.x = 0.0f;
-    playerPosition.y = 0.0f;
-    time = 0.0f;
+    playerPosition = {0.0f, 0.0f};
+    playerVelocity = {0.0f, 0.0f};
 }
 
-// The main update function
+// New method to update player velocity based on input
+void Game::handleInput(const InputState& input) {
+    if (input.left) {
+        playerVelocity.x = -moveSpeed;
+    } else if (input.right) {
+        playerVelocity.x = moveSpeed;
+    } else {
+        playerVelocity.x = 0; // Stop moving if no horizontal input
+    }
+
+    if (input.jump && isGrounded) {
+        playerVelocity.y = jumpStrength;
+        isGrounded = false;
+    }
+}
+
 void Game::update(float deltaTime) {
-    time += deltaTime;
+    // --- Physics Update ---
 
-    // Create a simple back-and-forth movement using a sine wave.
-    // The position will oscillate between -0.5 and 0.5.
-    playerPosition.x = std::sin(time) * 0.5f;
-    // We'll keep Y constant for now.
-    playerPosition.y = 0.0f;
+    // Apply gravity
+    playerVelocity.y += gravity * deltaTime;
+
+    // Update position based on velocity
+    playerPosition.x += playerVelocity.x * deltaTime;
+    playerPosition.y += playerVelocity.y * deltaTime;
+
+    // --- Simple Collision Detection (floor) ---
+    // This is a temporary floor to prevent falling forever.
+    if (playerPosition.y < -0.5f) {
+        playerPosition.y = -0.5f;
+        playerVelocity.y = 0;
+        isGrounded = true;
+    }
 }
 
-// Getter for the player's position
-Position Game::getPlayerPosition() const {
+Vec2 Game::getPlayerPosition() const {
     return playerPosition;
 }
