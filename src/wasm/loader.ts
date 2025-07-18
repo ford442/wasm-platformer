@@ -8,7 +8,6 @@ export interface Game {
   handleInput(inputState: InputState): void;
   getPlayerPosition(): Vec2;
   getPlatforms(): PlatformList;
-  // NEW: Add the camera getter to the interface
   getCameraPosition(): Vec2;
   delete(): void;
 }
