@@ -1,20 +1,23 @@
-export interface Position {
-  x: number;
-  y: number;
+export interface Vec2 { x: number; y: number; }
+
+export interface Platform {
+  position: Vec2;
+  size: Vec2;
 }
 
-// Add the definition for the InputState struct
-export interface InputState {
-  left: boolean;
-  right: boolean;
-  jump: boolean;
+// This is a special type from Emscripten for a std::vector
+export interface PlatformList {
+  get(index: number): Platform;
+  size(): number;
 }
 
-// Add the new handleInput method to the Game interface
+export interface InputState { left: boolean; right: boolean; jump: boolean; }
+
 export interface Game {
   update(deltaTime: number): void;
   handleInput(inputState: InputState): void;
-  getPlayerPosition(): Position;
+  getPlayerPosition(): Vec2;
+  getPlatforms(): PlatformList; // The C++ vector is exposed as this type
   delete(): void;
 }
 
@@ -22,13 +25,8 @@ export interface GameModule {
   Game: { new(): Game };
 }
 
-// This loader function finds the WASM module on the global window object.
-// This is the most reliable method and avoids module resolution errors.
 export const loadWasmModule = async (): Promise<GameModule> => {
   const factory = (window as any).createGameModule;
-  if (!factory) {
-    throw new Error("WASM module factory not found on window. Did game.js load correctly from the script tag in index.html?");
-  }
-  const module = await factory();
-  return module as GameModule;
+  if (!factory) throw new Error("WASM module factory not found on window.");
+  return await factory() as GameModule;
 };
