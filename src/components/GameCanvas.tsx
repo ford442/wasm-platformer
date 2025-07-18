@@ -63,7 +63,7 @@ const GameCanvas = () => {
     let lastTime = 0;
     
     const initialize = async () => {
-      try {
+ //     try {
         const wasmModule = await loadWasmModule();
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
@@ -81,9 +81,9 @@ const GameCanvas = () => {
 
         lastTime = performance.now();
         gameLoop(lastTime);
-      } catch (error) {
-        console.error("Failed to initialize game:", error);
-      }
+    //  } catch (error) {
+   //     console.error("Failed to initialize game:", error);
+   //   }
     };
 
     const gameLoop = (timestamp: number) => {
