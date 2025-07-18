@@ -69,6 +69,25 @@ export class Renderer {
       }
       return program;
   }
+
+    public async loadTexture(url: string): Promise<WebGLTexture> {
+    const texture = this.gl.createTexture();
+    if (!texture) throw new Error('Could not create texture');
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.src = url;
+      image.onload = () => {
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+        this.gl.generateMipmap(this.gl.TEXTURE_2D);
+        resolve(texture);
+      };
+      image.onerror = (err) => reject(`Failed to load texture from ${url}: ${err}`);
+    });
+  }
   
 private setupUnitSquare() {
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
