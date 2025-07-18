@@ -141,13 +141,9 @@ private setupUnitSquare() {
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-    if (platformTexture) {
-      for (const platform of platforms) {
-        this.drawSprite(platform.position, platform.size, platformTexture);
-      }
+    for (const platform of platforms) {
+      this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
     }
-    if (playerTexture) {
-      this.drawSprite(playerPosition, playerSize, playerTexture);
-    }
+    this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
   }
 }
