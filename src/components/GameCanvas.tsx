@@ -10,8 +10,8 @@ import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
 // FIX: Use local assets from the /public folder to avoid COEP errors.
-const WAZZY_SPRITE_URL = '/wazzy.png';
-const PLATFORM_TEXTURE_URL = '/platform.png';
+const WAZZY_SPRITE_URL = '../../public/wazzy.png';
+const PLATFORM_TEXTURE_URL = '../../public/platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
