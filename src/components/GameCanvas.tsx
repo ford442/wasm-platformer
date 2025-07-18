@@ -1,8 +1,33 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
-import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
-import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
+
+// Shaders are imported as raw text
+// FIX: Added camera uniform to vertex shader
+const vertexShaderSource = `#version 300 es
+in vec2 a_position;
+in vec2 a_texCoord;
+uniform vec2 u_model_position;
+uniform vec2 u_model_size;
+uniform vec2 u_camera_position;
+out vec2 v_texCoord;
+
+void main() {
+  vec2 world_position = (a_position * u_model_size) + u_model_position;
+  vec2 view_position = world_position - u_camera_position;
+  gl_Position = vec4(view_position, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}`;
+
+const fragmentShaderSource = `#version 300 es
+precision highp float;
+in vec2 v_texCoord;
+uniform sampler2D u_texture;
+out vec4 outColor;
+
+void main() {
+  outColor = texture(u_texture, v_texCoord);
+}`;
 
 const WAZZY_SPRITE_URL = './wazzy.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
@@ -83,6 +108,7 @@ const GameCanvas = () => {
         gameInstance.update(deltaTime);
         
         const playerPosition = gameInstance.getPlayerPosition();
+        // FIX: Get camera position from C++
         const cameraPosition = gameInstance.getCameraPosition();
         const wasmPlatforms = gameInstance.getPlatforms();
         
@@ -93,6 +119,7 @@ const GameCanvas = () => {
 
         const playerSize = { x: 0.2, y: 0.2 }; 
         
+        // FIX: Pass camera position to the renderer
         renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
       }
 
