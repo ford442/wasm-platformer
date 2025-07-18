@@ -73,7 +73,7 @@ const GameCanvas = () => {
     };
     
     const gameLoop = (timestamp: number) => {
-            if (isLoading || !playerTexture || !platformTexture) {
+            if (!playerTexture || !platformTexture) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
         return;
       }
