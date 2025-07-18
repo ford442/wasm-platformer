@@ -3,7 +3,6 @@
 
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
-    // NEW: Initialize previous position to the starting position.
     previousPlayerPosition = playerPosition; 
     playerVelocity = {0.0f, 0.0f};
     playerSize = {0.2f, 0.2f};
@@ -35,21 +34,18 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
+    // FIX: Store the player's position at the START of the frame.
+    // This is crucial for correctly detecting landings.
+    previousPlayerPosition = playerPosition;
+
     // --- Physics Update ---
-    // Apply gravity first
     playerVelocity.y += gravity * deltaTime;
-
-    // --- Horizontal Movement and Collision ---
     playerPosition.x += playerVelocity.x * deltaTime;
-    // Note: A real game would check for wall collisions here.
-
-    // --- Vertical Movement and Collision ---
     playerPosition.y += playerVelocity.y * deltaTime;
 
+    // --- Collision Detection and Resolution ---
     isGrounded = false;
-
     for (const auto& platform : platforms) {
-        // Use the generic AABB check first
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
             float playerBottom = playerPosition.y - playerSize.y / 2.0f;
             float platformTop = platform.position.y + platform.size.y / 2.0f;
@@ -57,8 +53,7 @@ void Game::update(float deltaTime) {
             // Check if the player was previously above the platform
             float previousPlayerBottom = previousPlayerPosition.y - playerSize.y / 2.0f;
 
-            // If the player is moving down and was previously above the platform,
-            // it's a landing.
+            // If the player is moving down and was previously above the platform, it's a landing.
             if (playerVelocity.y <= 0 && previousPlayerBottom >= platformTop) {
                 playerPosition.y = platformTop + playerSize.y / 2.0f;
                 playerVelocity.y = 0;
@@ -69,9 +64,6 @@ void Game::update(float deltaTime) {
         }
     }
     
-    // Store the final position for the next frame's calculation
-    previousPlayerPosition = playerPosition;
-
     // --- Update Camera ---
     cameraPosition.x = playerPosition.x;
 }
