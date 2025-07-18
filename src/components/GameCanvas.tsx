@@ -9,7 +9,38 @@ const GameCanvas = () => {
   const animationFrameId = useRef<number>(0);
   const keysRef = useRef<Record<string, boolean>>({ /* ... no changes ... */ });
 
-  // ... (useEffect for keyboard listeners remains the same) ...
+
+  // FIX: Use a ref to store input state.
+  // This avoids issues with stale state in the game loop's closure.
+  const keysRef = useRef<Record<string, boolean>>({
+    'ArrowLeft': false,
+    'ArrowRight': false,
+    'Space': false,
+  });
+
+  // Effect to add and remove keyboard event listeners
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code in keysRef.current) {
+        keysRef.current[e.code] = true;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code in keysRef.current) {
+        keysRef.current[e.code] = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []); // Empty dependency array means this effect runs once on mount
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -53,10 +84,18 @@ const GameCanvas = () => {
 
     initialize();
 
-    return () => { /* ... no changes ... */ };
+    return () => {
+      cancelAnimationFrame(animationFrameId.current);
+      if (gameInstanceRef.current) gameInstanceRef.current.delete();
+    };
   }, []);
 
-  const canvasStyle: React.CSSProperties = { /* ... no changes ... */ };
+  const canvasStyle: React.CSSProperties = {
+    width: '100%', height: '100%', backgroundColor: '#000',
+    borderRadius: '8px', boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
+    border: '2px solid var(--primary-color)'
+  };
+
   return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
 };
 
