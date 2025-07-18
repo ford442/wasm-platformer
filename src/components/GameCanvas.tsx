@@ -19,8 +19,8 @@ const GameCanvas = () => {
     'Space': false,
   });
 
-  const [playerTexture, setPlayerTexture] = useState<WebGLTexture;
-  const [platformTexture, setPlatformTexture] = useState<WebGLTexture;
+  const [playerTexture, setPlayerTexture] = useState<WebGLTexture>;
+  const [platformTexture, setPlatformTexture] = useState<WebGLTexture>;
   
   // Effect to add and remove keyboard event listeners
   useEffect(() => {
