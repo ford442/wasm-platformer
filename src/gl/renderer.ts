@@ -133,15 +133,17 @@ private setupUnitSquare() {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[]) {
+  public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null) {
     this.clear();
     this.gl.useProgram(this.program);
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     for (const platform of platforms) {
-      this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
+        this.drawSprite(platform.position, platform.size, platformTexture);
     }
-    this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
+      this.drawSprite(playerPosition, playerSize, playerTexture);
   }
 }
