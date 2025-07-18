@@ -2,6 +2,9 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer'; // Import Platform type for the array
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
 
+const WAZZY_SPRITE_URL = './wazzy.png';
+const PLATFORM_TEXTURE_URL = './platform.png';
+
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
