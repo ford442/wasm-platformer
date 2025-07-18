@@ -1,29 +1,19 @@
 export interface Vec2 { x: number; y: number; }
-
-export interface Platform {
-  position: Vec2;
-  size: Vec2;
-}
-
-// This is a special type from Emscripten for a std::vector
-export interface PlatformList {
-  get(index: number): Platform;
-  size(): number;
-}
-
+export interface Platform { position: Vec2; size: Vec2; }
+export interface PlatformList { get(index: number): Platform; size(): number; }
 export interface InputState { left: boolean; right: boolean; jump: boolean; }
 
 export interface Game {
   update(deltaTime: number): void;
   handleInput(inputState: InputState): void;
   getPlayerPosition(): Vec2;
-  getPlatforms(): PlatformList; // The C++ vector is exposed as this type
+  getPlatforms(): PlatformList;
+  // NEW: Add the camera getter to the interface
+  getCameraPosition(): Vec2;
   delete(): void;
 }
 
-export interface GameModule {
-  Game: { new(): Game };
-}
+export interface GameModule { Game: { new(): Game }; }
 
 export const loadWasmModule = async (): Promise<GameModule> => {
   const factory = (window as any).createGameModule;
