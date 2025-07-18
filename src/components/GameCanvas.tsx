@@ -6,10 +6,9 @@ import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec
 import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
-// FIX: Changed URLs to be relative paths.
-// This works correctly with the vite.config.ts setting `base: './'`.
-const WAZZY_SPRITE_URL = 'wazzy.png';
-const PLATFORM_TEXTURE_URL = 'platform.png';
+// FIX: Changed URLs to be explicitly relative paths based on user feedback.
+const WAZZY_SPRITE_URL = './wazzy.png';
+const PLATFORM_TEXTURE_URL = './platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
