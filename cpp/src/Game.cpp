@@ -10,7 +10,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.5f}; // Start a bit higher
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.2f, 0.2f}; // Player is 0.2x0.2 units
+    playerSize = {0.2f, 0.1f}; // Player is 0.2x0.2 units
 
     // --- Define our level's platforms (Corrected Coordinates) ---
     // A wide floor within the screen bounds
