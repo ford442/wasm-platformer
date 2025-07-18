@@ -9,10 +9,9 @@ import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec
 import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
-// FIX: Use an image provider that supports the necessary Cross-Origin headers
-// to resolve the COEP error.
-const WAZZY_SPRITE_URL = 'https://i.imgur.com/AL1K541.png'; // A simple blue square sprite
-const PLATFORM_TEXTURE_URL = 'https://i.imgur.com/tS24vpx.png'; // A simple gray platform sprite
+// FIX: Use local assets from the /public folder to avoid COEP errors.
+const WAZZY_SPRITE_URL = '/wazzy.png';
+const PLATFORM_TEXTURE_URL = '/platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,12 +22,10 @@ const GameCanvas = () => {
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
 
-  // NEW: State to hold our loaded WebGL textures
   const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
   const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ... (useEffect for keyboard listeners remains the same) ...
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -55,7 +52,6 @@ const GameCanvas = () => {
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
         rendererRef.current = renderer;
 
-        // NEW: Load all textures asynchronously
         const [pTex, platTex] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITE_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
@@ -72,7 +68,6 @@ const GameCanvas = () => {
     };
 
     const gameLoop = (timestamp: number) => {
-      // Don't run the loop if textures are not ready yet
       if (isLoading || !playerTexture || !platformTexture) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
         return;
@@ -104,7 +99,6 @@ const GameCanvas = () => {
 
         const playerSize = { x: 0.2, y: 0.2 }; 
         
-        // Pass the loaded textures to the draw call
         renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
       }
 
@@ -117,7 +111,7 @@ const GameCanvas = () => {
       cancelAnimationFrame(animationFrameId.current);
       if (gameInstanceRef.current) gameInstanceRef.current.delete();
     };
-  }, [isLoading, playerTexture, platformTexture]); // Re-run effect if loading state changes
+  }, [isLoading, playerTexture, platformTexture]);
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
