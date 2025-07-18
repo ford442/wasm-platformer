@@ -102,7 +102,7 @@ const GameCanvas = () => {
         const playerSize = { x: 0.2, y: 0.2 }; 
         
         // --- Draw the entire scene ---
-        renderer.drawScene(playerPosition, playerSize, jsPlatforms);
+        renderer.drawScene(playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
       }
 
       animationFrameId.current = requestAnimationFrame(gameLoop);
