@@ -30,6 +30,7 @@ export class Renderer {
     this.program = this.createProgram(vertexShader, fragmentShader);
 
     this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
+    this.texCoordAttributeLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
     this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
     this.modelSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_size');
     this.colorUniformLocation = this.gl.getUniformLocation(this.program, 'u_color');
