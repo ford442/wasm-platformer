@@ -54,7 +54,7 @@ const GameCanvas = () => {
     
 
     const initialize = async () => {
-      try {
+ //     try {
         const wasmModule = await loadWasmModule();
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
@@ -67,9 +67,9 @@ const GameCanvas = () => {
         setPlatformTexture(platTex);
         lastTime = performance.now();
         gameLoop(lastTime);
-      } catch (error) {
-        console.error("Failed to initialize the game:", error);
-      }
+//      } catch (error) {
+//        console.error("Failed to initialize the game:", error);
+ //     }
     };
     
     const gameLoop = (timestamp: number) => {
