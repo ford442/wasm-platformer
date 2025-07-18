@@ -45,8 +45,8 @@ private:
 
     // Physics constants
     const float gravity = -9.8f * 2.5f;
-    const float moveSpeed = 5.0f;
-    const float jumpStrength = 10.0f;
+    const float moveSpeed = 3.0f;
+    const float jumpStrength = 5.0f;
     bool isGrounded = false;
 };
 
