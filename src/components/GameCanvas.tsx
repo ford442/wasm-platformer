@@ -73,6 +73,10 @@ const GameCanvas = () => {
     };
     
     const gameLoop = (timestamp: number) => {
+            if (isLoading || !playerTexture || !platformTexture) {
+        animationFrameId.current = requestAnimationFrame(gameLoop);
+        return;
+      }
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
 
