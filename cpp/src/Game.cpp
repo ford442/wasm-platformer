@@ -52,7 +52,7 @@ void Game::update(float deltaTime) {
 
         if (collisionTime.has_value()) {
             float t = collisionTime.value();
-            
+
             // Allow movement up to the point of collision
             playerPosition.x += frameVelocity.x * t;
             playerPosition.y += frameVelocity.y * t;
@@ -63,7 +63,7 @@ void Game::update(float deltaTime) {
             Vec2 overlap;
             overlap.x = (playerPosition.x + playerSize.x / 2.0f) - (platform.position.x - platform.size.x / 2.0f);
             overlap.y = (playerPosition.y + playerSize.y / 2.0f) - (platform.position.y - platform.size.y / 2.0f);
-            
+
             Vec2 platformOverlap;
             platformOverlap.x = (platform.position.x + platform.size.x/2.0f) - (playerPosition.x - playerSize.x/2.0f);
             platformOverlap.y = (platform.position.y + platform.size.y/2.0f) - (playerPosition.y - playerSize.y/2.0f);
