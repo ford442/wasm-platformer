@@ -3,14 +3,14 @@ export interface Position {
   y: number;
 }
 
-// FIX: Add the definition for the InputState struct
+// Add the definition for the InputState struct
 export interface InputState {
   left: boolean;
   right: boolean;
   jump: boolean;
 }
 
-// FIX: Add the new handleInput method to the Game interface
+// Add the new handleInput method to the Game interface
 export interface Game {
   update(deltaTime: number): void;
   handleInput(inputState: InputState): void;
