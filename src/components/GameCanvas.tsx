@@ -1,11 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-// Note: The Renderer and other types are now imported from their respective files.
-// This example assumes you have refactored back to a multi-file structure.
-import { Renderer, Platform } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2 } from '../wasm/loader';
 import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
-
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,7 +14,6 @@ const GameCanvas = () => {
     'Space': false,
   });
 
-  // ... (useEffect for keyboard listeners remains the same) ...
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -41,7 +36,6 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
-        // Pass the shader source code to the renderer constructor
         rendererRef.current = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
         lastTime = performance.now();
         gameLoop(lastTime);
@@ -66,9 +60,7 @@ const GameCanvas = () => {
         gameInstance.handleInput(inputState);
         gameInstance.update(deltaTime);
         
-        // --- Get all game state data from C++ ---
         const playerPosition = gameInstance.getPlayerPosition();
-        // NEW: Get the camera position
         const cameraPosition = gameInstance.getCameraPosition();
         const wasmPlatforms = gameInstance.getPlatforms();
         
@@ -79,7 +71,6 @@ const GameCanvas = () => {
 
         const playerSize = { x: 0.2, y: 0.2 }; 
         
-        // --- Draw the entire scene with the new camera data ---
         renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms);
       }
 
