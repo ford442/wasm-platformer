@@ -26,49 +26,53 @@ void Game::handleInput(const InputState& input) {
         playerVelocity.x = 0;
     }
 
-    // FIX: Implement jump edge detection as you suggested.
-    // A jump can only be initiated if the key is pressed, the player is grounded,
-    // and the player is "allowed" to jump (i.e., the key was released since the last jump).
     if (input.jump && isGrounded && canJump) {
         playerVelocity.y = jumpStrength;
         isGrounded = false;
-        canJump = false; // Disallow another jump until the key is released.
+        canJump = false;
     }
 
-    // Reset the ability to jump once the jump key is released.
     if (!input.jump) {
         canJump = true;
     }
 }
 
 void Game::update(float deltaTime) {
-    // --- Physics Update ---
-    
-    // Apply gravity if the player is not on the ground
-    if (!isGrounded) {
-        playerVelocity.y += gravity * deltaTime;
-    }
-
-    // Apply horizontal and vertical velocity
+    // --- Horizontal Movement ---
+    // Apply horizontal movement first.
     playerPosition.x += playerVelocity.x * deltaTime;
+    // (A real game would check for wall collisions here)
+
+    // --- Vertical Movement ---
+    // Apply gravity and update vertical position.
+    playerVelocity.y += gravity * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
     // --- Collision Resolution ---
-    isGrounded = false; // Assume we are in the air until a collision proves otherwise.
+    isGrounded = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
             float playerBottom = playerPosition.y - playerSize.y / 2.0f;
-            float platformTop = platform.position.y + platform.size.y / 2.0f;
+            float playerLeft = playerPosition.x - playerSize.x / 2.0f;
+            float playerRight = playerPosition.x + playerSize.x / 2.0f;
 
-            // If we are moving down and intersecting the platform from above, it's a landing.
-            if (playerVelocity.y <= 0 && playerBottom < platformTop) {
-                // Use penetration resolution for a stable landing.
+            float platformTop = platform.position.y + platform.size.y / 2.0f;
+            float platformLeft = platform.position.x - platform.size.x / 2.0f;
+            float platformRight = platform.position.x + platform.size.x / 2.0f;
+
+            // Check if the player is intersecting from above and moving downwards.
+            if (playerVelocity.y <= 0 && playerBottom < platformTop && playerRight > platformLeft && playerLeft < platformRight) {
+                // Calculate the penetration depth.
                 float penetration = platformTop - playerBottom;
+                // Correct the player's position by moving them up by exactly the penetration amount.
                 playerPosition.y += penetration;
                 
-                playerVelocity.y = 0;
+                // If the player's vertical velocity is significant, stop it.
+                if (playerVelocity.y < 0) {
+                    playerVelocity.y = 0;
+                }
                 isGrounded = true;
-                break; 
+                break; // We've landed, no need to check other platforms.
             }
         }
     }
