@@ -197,8 +197,8 @@ class Renderer {
 //================================================================================
 // MAIN REACT COMPONENT
 //================================================================================
-const WAZZY_SPRITE_URL = '/wazzy.png';
-const PLATFORM_TEXTURE_URL = '/platform.png';
+const WAZZY_SPRITE_URL = './wazzy.png';
+const PLATFORM_TEXTURE_URL = './platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
