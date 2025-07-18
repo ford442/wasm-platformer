@@ -59,14 +59,14 @@ const GameCanvas = () => {
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         rendererRef.current = new Renderer(canvas);
-      /*
+    
         const [pTex, platTex] = await Promise.all([
           rendererRef.current.loadTexture(WAZZY_SPRITE_URL),
           rendererRef.current.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
         setPlayerTexture(pTex);
         setPlatformTexture(platTex);
-        */
+ 
         lastTime = performance.now();
         gameLoop(lastTime);
 //      } catch (error) {
@@ -75,10 +75,7 @@ const GameCanvas = () => {
     };
     
     const gameLoop = (timestamp: number) => {
-            if (!playerTexture || !platformTexture) {
-        animationFrameId.current = requestAnimationFrame(gameLoop);
-        return;
-      }
+
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
 
