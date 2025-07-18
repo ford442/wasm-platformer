@@ -3,7 +3,6 @@
 
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
-    previousPlayerPosition = playerPosition; 
     playerVelocity = {0.0f, 0.0f};
     playerSize = {0.2f, 0.2f};
     cameraPosition = {0.0f, 0.0f};
@@ -34,35 +33,35 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // FIX: Store the player's position at the START of the frame.
-    // This is crucial for correctly detecting landings.
-    previousPlayerPosition = playerPosition;
-
-    // --- Physics Update ---
+    // --- Vertical Movement and Collision ---
+    // Apply gravity and update vertical position
     playerVelocity.y += gravity * deltaTime;
-    playerPosition.x += playerVelocity.x * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
-    // --- Collision Detection and Resolution ---
     isGrounded = false;
+
+    // Check for vertical collisions
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
             float playerBottom = playerPosition.y - playerSize.y / 2.0f;
             float platformTop = platform.position.y + platform.size.y / 2.0f;
-            
-            // Check if the player was previously above the platform
-            float previousPlayerBottom = previousPlayerPosition.y - playerSize.y / 2.0f;
 
-            // If the player is moving down and was previously above the platform, it's a landing.
-            if (playerVelocity.y <= 0 && previousPlayerBottom >= platformTop) {
+            // If we are moving down and are intersecting the platform from above, it's a landing.
+            if (playerVelocity.y <= 0 && playerBottom < platformTop) {
+                // Snap the player to the top of the platform
                 playerPosition.y = platformTop + playerSize.y / 2.0f;
                 playerVelocity.y = 0;
                 isGrounded = true;
-                break; // Stop checking after a successful landing
+                // We've landed, so we can stop checking for this frame
+                break; 
             }
-            // Note: A real game would also handle collisions from the sides and bottom here.
         }
     }
+
+    // --- Horizontal Movement and Collision ---
+    // Apply horizontal movement *after* vertical has been resolved.
+    playerPosition.x += playerVelocity.x * deltaTime;
+    // (In the future, we would add checks for wall collisions here)
     
     // --- Update Camera ---
     cameraPosition.x = playerPosition.x;
