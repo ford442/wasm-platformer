@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { Renderer, Platform } from '../gl/renderer'; // Import Platform type for the array
-import { loadWasmModule, type Game, type InputState, type PlatformList } from '../wasm/loader';
+import { Renderer } from '../gl/renderer'; // Import Platform type for the array
+import { loadWasmModule, Platform, type Game, type InputState, type PlatformList } from '../wasm/loader';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
