@@ -31,7 +31,6 @@ private:
     const float moveSpeed = 2.0f;
     const float jumpStrength = 6.0f;
     bool isGrounded = false;
-    // NEW: A flag to implement "edge detection" for the jump input.
     bool canJump = true;
 };
 
