@@ -7,8 +7,8 @@ import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
 // URLs for the assets located in the /public folder
-const WAZZY_SPRITE_URL = '/wazzy.png';
-const PLATFORM_TEXTURE_URL = '/platform.png';
+const WAZZY_SPRITE_URL = './wazzy.png';
+const PLATFORM_TEXTURE_URL = './platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
