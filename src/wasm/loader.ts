@@ -7,8 +7,8 @@ export interface Game {
   update(deltaTime: number): void;
   handleInput(inputState: InputState): void;
   getPlayerPosition(): Vec2;
-  getPlatforms(): PlatformList;
   getCameraPosition(): Vec2;
+  getPlatforms(): PlatformList;
   delete(): void;
 }
 
