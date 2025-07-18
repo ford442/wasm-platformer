@@ -1,13 +1,17 @@
 #version 300 es
 precision highp float;
 
-// UNIFORM: The color passed from our code.
-uniform vec4 u_color;
+// INPUT coming from the vertex shader
+in vec2 v_texCoord;
 
-// OUTPUT: The final color of the pixel.
+// UNIFORM: The actual texture image we want to draw
+uniform sampler2D u_texture;
+
+// OUTPUT: The final color of the pixel
 out vec4 outColor;
 
 void main() {
-  // Set the output color to the value of the uniform.
-  outColor = u_color;
+  // Look up the color from the texture at the given coordinate.
+  // The 'texture' function is a built-in GLSL function.
+  outColor = texture(u_texture, v_texCoord);
 }
