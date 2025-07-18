@@ -21,7 +21,7 @@ private:
     bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
 
     Vec2 playerPosition;
-    // NEW: A vector to store the player's position from the previous frame.
+    // A vector to store the player's position from the previous frame.
     Vec2 previousPlayerPosition; 
     Vec2 playerVelocity;
     Vec2 playerSize;
