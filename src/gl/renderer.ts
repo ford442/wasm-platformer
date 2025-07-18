@@ -1,3 +1,5 @@
+import type { Vec2, Platform } from '../wasm/loader';
+
 export class Renderer {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
