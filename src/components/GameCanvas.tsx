@@ -9,10 +9,10 @@ import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec
 import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
-// Placeholder URLs for our game assets.
-// You can replace these with the URLs for the assets you create!
-const WAZZY_SPRITE_URL = 'https://placehold.co/64x64/00aaff/000000?text=Wazzy';
-const PLATFORM_TEXTURE_URL = 'https://placehold.co/128x32/808080/000000?text=Platform';
+// FIX: Use an image provider that supports the necessary Cross-Origin headers
+// to resolve the COEP error.
+const WAZZY_SPRITE_URL = 'https://i.imgur.com/AL1K541.png'; // A simple blue square sprite
+const PLATFORM_TEXTURE_URL = 'https://i.imgur.com/tS24vpx.png'; // A simple gray platform sprite
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
