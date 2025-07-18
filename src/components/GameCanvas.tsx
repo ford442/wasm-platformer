@@ -57,8 +57,8 @@ const GameCanvas = () => {
         gameInstanceRef.current = game;
         rendererRef.current = new Renderer(canvas);
         const [pTex, platTex] = await Promise.all([
-          renderer.loadTexture(WAZZY_SPRITE_URL),
-          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+          rendererRef.current.loadTexture(WAZZY_SPRITE_URL),
+          rendererRef.current.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
         setPlayerTexture(pTex);
         setPlatformTexture(platTex);
