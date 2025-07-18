@@ -38,39 +38,42 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
+    // --- Physics Update ---
+    
+    // CRITICAL FIX: Only apply gravity if the player is in the air.
+    // This uses the 'isGrounded' state from the *previous frame* to decide.
+    // This prevents gravity from being applied when the player is standing on a platform, which stops the jittering bug.
+    if (!isGrounded) {
+        playerVelocity.y += gravity * deltaTime;
+    }
+
     // --- Horizontal Movement ---
-    // First, we apply the horizontal movement.
     playerPosition.x += playerVelocity.x * deltaTime;
-    // (In a full game, we would check for wall collisions here and resolve them)
+    // (In a full game, we would check for wall collisions here)
 
     // --- Vertical Movement ---
-    // Next, we apply gravity and vertical velocity.
-    playerVelocity.y += gravity * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
     // --- Collision Resolution ---
-    // Now, we check for collisions and correct the player's position.
-    isGrounded = false;
+    // First, assume we are in the air. A collision will prove otherwise.
+    isGrounded = false; 
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
             // We only resolve collisions if the player is moving downwards.
-            // This prevents the player from getting stuck in the ceiling of a platform.
             if (playerVelocity.y <= 0) {
                 float playerBottom = playerPosition.y - playerSize.y / 2.0f;
                 float platformTop = platform.position.y + platform.size.y / 2.0f;
 
-                // We only resolve the collision if the player is actually intersecting from above.
+                // Check if the player is actually intersecting from above.
                 if (playerBottom < platformTop) {
-                    // Calculate how far the player has sunk into the platform.
+                    // Use penetration resolution to correct the position.
                     float penetration = platformTop - playerBottom;
-                    // Correct the player's position by moving them up by exactly that amount.
                     playerPosition.y += penetration;
                     
-                    // Stop all vertical movement.
+                    // Stop all vertical movement and mark the player as grounded.
                     playerVelocity.y = 0;
                     isGrounded = true;
-                    // We've landed on a platform, so we can stop checking for this frame.
-                    break; 
+                    break; // We've landed, so we can stop checking other platforms.
                 }
             }
         }
