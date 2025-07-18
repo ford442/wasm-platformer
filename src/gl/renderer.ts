@@ -1,14 +1,3 @@
-/*
-================================================================================
-  FILE: src/gl/renderer.ts (Updated for Scrolling)
-================================================================================
-*/
-// Note: The fragment shader does not need to be changed.
-
-// Interfaces to match the C++ structs
-export interface Vec2 { x: number; y: number; }
-export interface Platform { position: Vec2; size: Vec2; }
-
 export class Renderer {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
@@ -16,9 +5,7 @@ export class Renderer {
   private modelPositionUniformLocation: WebGLUniformLocation | null;
   private modelSizeUniformLocation: WebGLUniformLocation | null;
   private colorUniformLocation: WebGLUniformLocation | null;
-  // NEW: A location for the camera uniform
   private cameraPositionUniformLocation: WebGLUniformLocation | null;
-  
   private unitSquareBuffer: WebGLBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement, vertexShaderSource: string, fragmentShaderSource: string) {
@@ -30,47 +17,78 @@ export class Renderer {
     const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fragmentShaderSource);
     this.program = this.createProgram(vertexShader, fragmentShader);
 
-    // Get attribute and uniform locations
     this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
     this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
     this.modelSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_size');
     this.colorUniformLocation = this.gl.getUniformLocation(this.program, 'u_color');
-    // NEW: Get the location of the camera uniform from the shader
     this.cameraPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_camera_position');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
   }
 
-  // ... (compileShader, createProgram, setupUnitSquare, clear, and drawRect methods remain the same)
-  private compileShader(type: number, source: string): WebGLShader { /* ... */ return this.gl.createShader(type)!; }
-  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram { /* ... */ return this.gl.createProgram()!; }
-  private setupUnitSquare() { /* ... */ }
-  public clear() { /* ... */ }
-  private drawRect(position: Vec2, size: Vec2, color: [number, number, number, number]) { /* ... */ }
+  // FIX: Provide the full, robust implementation for the shader compiler.
+  private compileShader(type: number, source: string): WebGLShader {
+    const shader = this.gl.createShader(type);
+    if (!shader) {
+      throw new Error('Unable to create shader');
+    }
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      const errorLog = this.gl.getShaderInfoLog(shader);
+      this.gl.deleteShader(shader);
+      throw new Error(`Failed to compile shader: ${errorLog}`);
+    }
+    return shader;
+  }
 
-  /**
-   * The main drawing function, now accepts camera data.
-   */
+  // FIX: Provide the full, robust implementation for the program linker.
+  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+    const program = this.gl.createProgram();
+    if (!program) {
+      throw new Error('Unable to create program');
+    }
+    this.gl.attachShader(program, vertexShader);
+    this.gl.attachShader(program, fragmentShader);
+    this.gl.linkProgram(program);
+    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+      const errorLog = this.gl.getProgramInfoLog(program);
+      this.gl.deleteProgram(program);
+      throw new Error(`Failed to link program: ${errorLog}`);
+    }
+    return program;
+  }
+
+  private setupUnitSquare() {
+    const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
+    this.unitSquareBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+  }
+
+  private clear() {
+    this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  }
+
+  private drawRect(position: Vec2, size: Vec2, color: [number, number, number, number]) {
+    this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
+    this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
+    this.gl.uniform4fv(this.colorUniformLocation, color);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[]) {
     this.clear();
     this.gl.useProgram(this.program);
-
-    // NEW: Set the camera position uniform once per frame.
-    // This value will be used for all subsequent draw calls.
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
-
-    // Set up the vertex buffer once for all draw calls in this frame
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-
-    // Draw all the platforms
     for (const platform of platforms) {
       this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
     }
-
-    // Draw the player
     this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
   }
 }
