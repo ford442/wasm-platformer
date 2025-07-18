@@ -46,8 +46,20 @@ const GameCanvas = () => {
 
     let lastTime = 0;
     
-    const initialize = async () => { /* ... no changes ... */ };
 
+    const initialize = async () => {
+      try {
+        const wasmModule = await loadWasmModule();
+        const game = new wasmModule.Game();
+        gameInstanceRef.current = game;
+        rendererRef.current = new Renderer(canvas);
+        lastTime = performance.now();
+        gameLoop(lastTime);
+      } catch (error) {
+        console.error("Failed to initialize the game:", error);
+      }
+    };
+    
     const gameLoop = (timestamp: number) => {
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
@@ -56,7 +68,11 @@ const GameCanvas = () => {
       const gameInstance = gameInstanceRef.current;
 
       if (renderer && gameInstance) {
-        const inputState: InputState = { /* ... no changes ... */ };
+     const inputState: InputState = {
+          left: keysRef.current['ArrowLeft'],
+          right: keysRef.current['ArrowRight'],
+          jump: keysRef.current['Space'],
+        };
         gameInstance.handleInput(inputState);
         gameInstance.update(deltaTime);
         
