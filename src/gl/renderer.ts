@@ -6,16 +6,8 @@
 import vertexShaderSource from './shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from './shaders/basic.frag.glsl?raw';
 
-// Interfaces to match the C++ structs
-export interface Vec2 {
-  x: number;
-  y: number;
-}
+import type { Vec2, Platform } from '../wasm/loader';
 
-export interface Platform {
-  position: Vec2;
-  size: Vec2;
-}
 export class Renderer {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
