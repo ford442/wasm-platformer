@@ -33,39 +33,37 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Physics Update ---
-    
-    // FIX: Only apply gravity if the player is in the air.
-    // This uses the result from the *previous* frame to prevent jittering.
-    if (!isGrounded) {
-        playerVelocity.y += gravity * deltaTime;
-    }
-
-    // Apply horizontal movement
+    // --- Horizontal Movement ---
+    // Update horizontal position first
     playerPosition.x += playerVelocity.x * deltaTime;
-    // (In the future, we would add checks for wall collisions here)
+    // (Future: Add horizontal collision checks here)
 
-    // Apply vertical movement
+    // --- Vertical Movement ---
+    playerVelocity.y += gravity * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
-    // --- Collision Resolution ---
-    isGrounded = false; // Assume we are in the air until a collision proves otherwise.
-    for (const auto& platform : platforms) {
-        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
-            float playerBottom = playerPosition.y - playerSize.y / 2.0f;
-            float platformTop = platform.position.y + platform.size.y / 2.0f;
+    isGrounded = false;
 
-            // If we are moving down and intersecting the platform from above, it's a landing.
-            if (playerVelocity.y <= 0 && playerBottom < platformTop) {
-                // Snap the player to the top of the platform
-                playerPosition.y = platformTop + playerSize.y / 2.0f;
+    // --- Collision Resolution ---
+    for (const auto& platform : platforms) {
+        // Broad-phase check: only check for collision if player is roughly at the same x-range
+        if (playerPosition.x + playerSize.x > platform.position.x &&
+            playerPosition.x < platform.position.x + platform.size.x)
+        {
+            // Check if player is falling and is intersecting the platform from above
+            if (playerVelocity.y <= 0 &&
+                (playerPosition.y - playerSize.y / 2.0f) < (platform.position.y + platform.size.y / 2.0f) &&
+                (playerPosition.y - playerSize.y / 2.0f) > platform.position.y)
+            {
+                // Snap to the top of the platform
+                playerPosition.y = platform.position.y + platform.size.y / 2.0f + playerSize.y / 2.0f;
                 playerVelocity.y = 0;
                 isGrounded = true;
-                break; 
+                break; // Landed on a platform, no need to check others
             }
         }
     }
-    
+
     // --- Update Camera ---
     cameraPosition.x = playerPosition.x;
 }
