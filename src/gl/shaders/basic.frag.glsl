@@ -1,13 +1,9 @@
 #version 300 es
 precision highp float;
-
-// UNIFORM: The color passed from our code.
-uniform vec4 u_color;
-
-// OUTPUT: The final color of the pixel.
+in vec2 v_texCoord;
+uniform sampler2D u_texture;
 out vec4 outColor;
 
 void main() {
-  // Set the output color to the value of the uniform.
-  outColor = u_color;
+  outColor = texture(u_texture, v_texCoord);
 }
