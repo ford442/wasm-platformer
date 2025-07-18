@@ -18,7 +18,7 @@ public:
     const std::vector<Platform>& getPlatforms() const;
 
 private:
-    std::optional<float> checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& velA, const Vec2& posB, const Vec2& sizeB);
+    bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
 
     Vec2 playerPosition;
     Vec2 playerVelocity;
