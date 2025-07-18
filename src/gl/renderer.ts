@@ -15,7 +15,10 @@ export class Renderer {
   private modelPositionUniformLocation: WebGLUniformLocation | null;
   private modelSizeUniformLocation: WebGLUniformLocation | null;
   private colorUniformLocation: WebGLUniformLocation | null;
-  private unitSquareBuffer: WebGLBuffer | null = null;
+  private texCoordAttributeLocation: number;
+  private textureUniformLocation: WebGLUniformLocation | null;
+  private unitSquarePositionBuffer: WebGLBuffer | null = null;
+  private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('webgl2');
@@ -65,12 +68,16 @@ export class Renderer {
       }
       return program;
   }
-
-  private setupUnitSquare() {
+  
+private setupUnitSquare() {
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
-    this.unitSquareBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
+    this.unitSquarePositionBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+    this.unitSquareTexCoordBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
   public clear() {
@@ -78,6 +85,27 @@ export class Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
+    private drawSprite(position: Vec2, size: Vec2, texture: WebGLTexture) {
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.uniform1i(this.textureUniformLocation, 0);
+    this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
+    this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
+
+    if (this.positionAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.positionAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
+
+    if (this.texCoordAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+        this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
+
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+  
   private drawRect(position: Vec2, size: Vec2, color: [number, number, number, number]) {
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
@@ -89,7 +117,7 @@ export class Renderer {
     this.clear();
     this.gl.useProgram(this.program);
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     for (const platform of platforms) {
       this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
