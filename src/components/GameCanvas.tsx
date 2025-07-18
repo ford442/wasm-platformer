@@ -1,9 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Renderer } from '../gl/renderer'; // Import Platform type for the array
-import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
-
-const WAZZY_SPRITE_URL = './wazzy.png';
-const PLATFORM_TEXTURE_URL = './platform.png';
+import React, { useRef, useEffect } from 'react';
+import { Renderer, Platform } from '../gl/renderer'; // Import Platform type for the array
+import { loadWasmModule, type Game, type InputState, type PlatformList } from '../wasm/loader';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,9 +16,6 @@ const GameCanvas = () => {
     'Space': false,
   });
 
-  const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
-  const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
-  
   // Effect to add and remove keyboard event listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -54,28 +48,19 @@ const GameCanvas = () => {
     
 
     const initialize = async () => {
- //     try {
+      try {
         const wasmModule = await loadWasmModule();
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         rendererRef.current = new Renderer(canvas);
-    
-        const [pTex, platTex] = await Promise.all([
-          rendererRef.current.loadTexture(WAZZY_SPRITE_URL),
-          rendererRef.current.loadTexture(PLATFORM_TEXTURE_URL)
-        ]);
-        setPlayerTexture(pTex);
-        setPlatformTexture(platTex);
- 
         lastTime = performance.now();
         gameLoop(lastTime);
-//      } catch (error) {
-//        console.error("Failed to initialize the game:", error);
- //     }
+      } catch (error) {
+        console.error("Failed to initialize the game:", error);
+      }
     };
     
     const gameLoop = (timestamp: number) => {
-
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
 
@@ -105,7 +90,7 @@ const GameCanvas = () => {
         const playerSize = { x: 0.2, y: 0.2 }; 
         
         // --- Draw the entire scene ---
-        renderer.drawScene(playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
+        renderer.drawScene(playerPosition, playerSize, jsPlatforms);
       }
 
       animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -117,7 +102,7 @@ const GameCanvas = () => {
       cancelAnimationFrame(animationFrameId.current);
       if (gameInstanceRef.current) gameInstanceRef.current.delete();
     };
-  }, [playerTexture, platformTexture]);
+  }, []);
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
