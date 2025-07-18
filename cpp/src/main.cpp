@@ -1,16 +1,22 @@
 #include "Game.hpp"
 #include <emscripten/bind.h>
 
-// Using emscripten::bind to expose the C++ classes and functions to JavaScript.
 EMSCRIPTEN_BINDINGS(WASM_Venture) {
-    // Expose the Position struct and its fields.
-    emscripten::value_object<Position>("Position")
-        .field("x", &Position::x)
-        .field("y", &Position::y);
+    // Expose Vec2 struct
+    emscripten::value_object<Vec2>("Vec2")
+        .field("x", &Vec2::x)
+        .field("y", &Vec2::y);
 
-    // Expose the Game class, its constructor, and its methods.
+    // Expose the new InputState struct so we can create it in JS
+    emscripten::value_object<InputState>("InputState")
+        .field("left", &InputState::left)
+        .field("right", &InputState::right)
+        .field("jump", &InputState::jump);
+
+    // Expose the Game class and its methods, including the new handleInput
     emscripten::class_<Game>("Game")
         .constructor<>()
         .function("update", &Game::update)
+        .function("handleInput", &Game::handleInput) // New binding
         .function("getPlayerPosition", &Game::getPlayerPosition);
 }
