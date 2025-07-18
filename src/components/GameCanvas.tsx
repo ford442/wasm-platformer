@@ -1,9 +1,18 @@
-import React, { useRef, useEffect } from 'react';
-// FIX: Correctly import Renderer from its file, and Platform from the loader.
+/*
+================================================================================
+  FILE: src/components/GameCanvas.tsx (Updated for Textures)
+================================================================================
+*/
+import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
 import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
+
+// Placeholder URLs for our game assets.
+// You can replace these with the URLs for the assets you create!
+const WAZZY_SPRITE_URL = 'https://placehold.co/64x64/00aaff/000000?text=Wazzy';
+const PLATFORM_TEXTURE_URL = 'https://placehold.co/128x32/808080/000000?text=Platform';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,11 +20,15 @@ const GameCanvas = () => {
   const gameInstanceRef = useRef<Game | null>(null);
   const animationFrameId = useRef<number>(0);
   const keysRef = useRef<Record<string, boolean>>({
-    'ArrowLeft': false,
-    'ArrowRight': false,
-    'Space': false,
+    'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
 
+  // NEW: State to hold our loaded WebGL textures
+  const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
+  const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ... (useEffect for keyboard listeners remains the same) ...
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -38,7 +51,19 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
-        rendererRef.current = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
+        
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
+        rendererRef.current = renderer;
+
+        // NEW: Load all textures asynchronously
+        const [pTex, platTex] = await Promise.all([
+          renderer.loadTexture(WAZZY_SPRITE_URL),
+          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+        ]);
+        setPlayerTexture(pTex);
+        setPlatformTexture(platTex);
+        setIsLoading(false);
+
         lastTime = performance.now();
         gameLoop(lastTime);
       } catch (error) {
@@ -47,6 +72,12 @@ const GameCanvas = () => {
     };
 
     const gameLoop = (timestamp: number) => {
+      // Don't run the loop if textures are not ready yet
+      if (isLoading || !playerTexture || !platformTexture) {
+        animationFrameId.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+      
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
 
@@ -73,7 +104,8 @@ const GameCanvas = () => {
 
         const playerSize = { x: 0.2, y: 0.2 }; 
         
-        renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms);
+        // Pass the loaded textures to the draw call
+        renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
       }
 
       animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -85,7 +117,7 @@ const GameCanvas = () => {
       cancelAnimationFrame(animationFrameId.current);
       if (gameInstanceRef.current) gameInstanceRef.current.delete();
     };
-  }, []);
+  }, [isLoading, playerTexture, platformTexture]); // Re-run effect if loading state changes
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
