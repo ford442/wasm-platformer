@@ -1,4 +1,4 @@
-import type { Vec2, Platform } from '../wasm/loader';
+import type { Vec2, Platform, AnimationState } from '../wasm/loader';
   
 import vertexShaderSource from './shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from './shaders/tex.frag.glsl?raw';
