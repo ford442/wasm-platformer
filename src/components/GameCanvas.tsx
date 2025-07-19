@@ -3,8 +3,8 @@ import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
-const WAZZY_SPRITESHEET_URL = '/wazzy_spritesheet.png';
-const PLATFORM_TEXTURE_URL = '/platform.png';
+const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
+const PLATFORM_TEXTURE_URL = './platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
