@@ -1,4 +1,7 @@
 import type { Vec2, Platform } from '../wasm/loader';
+  
+import vertexShaderSource from './shaders/tex.vert.glsl?raw';
+import fragmentShaderSource from './shaders/tex.frag.glsl?raw';
 
 export class Renderer {
   private gl: WebGL2RenderingContext;
@@ -16,15 +19,12 @@ export class Renderer {
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
 
-  constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
+  constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
     this.gl = context;
 
-    const vertexShader = this.compileShader(this.gl.VERTEX_SHADER, vsSource);
-    const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
     this.program = this.createProgram(vertexShader, fragmentShader);
-
 
     // Get attribute and uniform locations
     this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
