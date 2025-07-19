@@ -116,12 +116,12 @@ export class Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
-  private drawRect(position: Vec2, size: Vec2, color: [number, number, number, number]) {
+private drawRect(position: Vec2, size: Vec2, color: [number, number, number, number]) {
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
     this.gl.uniform4fv(this.colorUniformLocation, color);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-  }
+}
 
 private drawSprite(position: Vec2, size: Vec2, texture: WebGLTexture) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
@@ -149,14 +149,10 @@ public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], 
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-
-    if (platformTexture) {
-      for (const platform of platforms) {
-        this.drawSprite(platform.position, platform.size, platformTexture);
-      }
+    for (const platform of platforms) {
+      this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
     }
-    if (playerTexture) {
-      this.drawSprite(playerPosition, playerSize, playerTexture);
-    }
+    this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
+  }
  }
 }
