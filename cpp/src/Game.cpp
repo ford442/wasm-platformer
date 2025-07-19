@@ -1,5 +1,6 @@
 #include "Game.hpp"
 #include <cmath>
+#include <algorithm> // Needed for std::abs
 
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
@@ -40,33 +41,55 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Vertical Movement and Physics ---
+    // --- Apply Forces ---
     if (!isGrounded) {
         playerVelocity.y += gravity * deltaTime;
     }
+    playerPosition.x += playerVelocity.x * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
     // --- Collision Resolution ---
     isGrounded = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
-            if (playerVelocity.y <= 0) {
-                float playerBottom = playerPosition.y - playerSize.y / 2.0f;
-                float platformTop = platform.position.y + platform.size.y / 2.0f;
-                if (playerBottom < platformTop) {
-                    float penetration = platformTop - playerBottom;
-                    playerPosition.y += penetration;
-                    playerVelocity.y = 0;
+            // Calculate penetration on both axes
+            float playerHalfX = playerSize.x / 2.0f;
+            float playerHalfY = playerSize.y / 2.0f;
+            float platformHalfX = platform.size.x / 2.0f;
+            float platformHalfY = platform.size.y / 2.0f;
+
+            float deltaX = playerPosition.x - platform.position.x;
+            float penetrationX = (playerHalfX + platformHalfX) - std::abs(deltaX);
+
+            float deltaY = playerPosition.y - platform.position.y;
+            float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
+
+            // Resolve collision on the axis with the smallest penetration
+            if (penetrationX < penetrationY) {
+                // Horizontal collision
+                if (deltaX > 0) { // Player is to the right of the platform center
+                    playerPosition.x += penetrationX;
+                } else {
+                    playerPosition.x -= penetrationX;
+                }
+                playerVelocity.x = 0;
+            } else {
+                // Vertical collision
+                if (deltaY > 0) { // Player is above the platform center
+                    playerPosition.y += penetrationY;
+                    if (playerVelocity.y < 0) {
+                        playerVelocity.y = 0;
+                    }
                     isGrounded = true;
-                    break; 
+                } else { // Player is below the platform center
+                    playerPosition.y -= penetrationY;
+                    if (playerVelocity.y > 0) {
+                        playerVelocity.y = 0;
+                    }
                 }
             }
         }
     }
-
-    // --- Horizontal Movement ---
-    playerPosition.x += playerVelocity.x * deltaTime;
-    // (Wall collision logic would go here)
     
     // --- Animation Logic ---
     if (!isGrounded) {
@@ -98,6 +121,4 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
-// The implementation for the animation state getter is re-added.
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
-
