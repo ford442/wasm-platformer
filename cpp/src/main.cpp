@@ -2,19 +2,28 @@
 #include <emscripten/bind.h>
 
 EMSCRIPTEN_BINDINGS(WASM_Venture) {
-    // ... (Vec2, Platform, etc. bindings are the same)
-    emscripten::value_object<Vec2>("Vec2").field("x", &Vec2::x).field("y", &Vec2::y);
-    emscripten::value_object<Platform>("Platform").field("position", &Platform::position).field("size", &Platform::size);
-    emscripten::register_vector<Platform>("PlatformList");
-    emscripten::value_object<InputState>("InputState").field("left", &InputState::left).field("right", &InputState::right).field("jump", &InputState::jump);
+    emscripten::value_object<Vec2>("Vec2")
+        .field("x", &Vec2::x)
+        .field("y", &Vec2::y);
+        
+    emscripten::value_object<Platform>("Platform")
+        .field("position", &Platform::position)
+        .field("size", &Platform::size);
 
-    // NEW: Expose the AnimationState struct to JavaScript.
+    emscripten::register_vector<Platform>("PlatformList");
+
+    emscripten::value_object<InputState>("InputState")
+        .field("left", &InputState::left)
+        .field("right", &InputState::right)
+        .field("jump", &InputState::jump);
+
+    // Bind the AnimationState struct.
     emscripten::value_object<AnimationState>("AnimationState")
         .field("currentState", &AnimationState::currentState)
         .field("currentFrame", &AnimationState::currentFrame)
         .field("facingLeft", &AnimationState::facingLeft);
 
-    // Expose the Game class and its methods.
+    // Bind the full Game class.
     emscripten::class_<Game>("Game")
         .constructor<>()
         .function("update", &Game::update)
@@ -22,6 +31,6 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getPlayerPosition", &Game::getPlayerPosition)
         .function("getCameraPosition", &Game::getCameraPosition)
         .function("getPlatforms", &Game::getPlatforms)
-        // NEW: Expose the animation state getter.
+        // Bind the animation state getter.
         .function("getPlayerAnimationState", &Game::getPlayerAnimationState);
 }
