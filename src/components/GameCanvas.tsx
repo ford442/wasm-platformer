@@ -2,12 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
 
-const WAZZY_SPRITE_URL = './wazzy.png';
-const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png'; // NEW
-const PLATFORM_TEXTURE_URL = './platform.png';
-
-import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
-import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
+const WAZZY_SPRITESHEET_URL = '/wazzy_spritesheet.png';
+const PLATFORM_TEXTURE_URL = '/platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,12 +23,13 @@ const GameCanvas = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+   }, []);
 
-  // FIX: This useEffect handles the one-time setup and asset loading.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    let lastTime = 0;
     
     const initialize = async () => {
       try {
@@ -49,26 +46,22 @@ const GameCanvas = () => {
         ]);
         playerTextureRef.current = pTex;
         platformTextureRef.current = platTex;
-
-        // Once everything is loaded, set the ready flag to start the game loop.
         setIsReady(true);
       } catch (error) {
         console.error("Failed to initialize game:", error);
       }
     };
-
     initialize();
 
     return () => {
-      // Cleanup the C++ game instance when the component unmounts.
-      if (gameInstanceRef.current) gameInstanceRef.current.delete();
+      if (gameInstanceRef.current) {
+        gameInstanceRef.current.delete();
+      }
     };
   }, []);
 
-  // FIX: This useEffect handles the game loop itself. It only runs when 'isReady' becomes true.
   useEffect(() => {
-    if (!isReady) return; // Don't start the loop until we are ready.
-
+    if (!isReady) return;
     let lastTime = performance.now();
     let animationFrameId = 0;
     
@@ -77,20 +70,14 @@ const GameCanvas = () => {
       const gameInstance = gameInstanceRef.current;
       const pTex = playerTextureRef.current;
       const platTex = platformTextureRef.current;
-
-      // This check is still a good safeguard.
-      if (!renderer || !gameInstance || !pTex || !platTex) {
-        animationFrameId = requestAnimationFrame(gameLoop);
-        return;
-      }
+      if (!renderer || !gameInstance || !pTex || !platTex) { animationFrameId = requestAnimationFrame(gameLoop); return; }
       
       const deltaTime = (timestamp - lastTime) / 1000.0;
       lastTime = timestamp;
-
       const inputState: InputState = {
-        left: keysRef.current['ArrowLeft'],
-        right: keysRef.current['ArrowRight'],
-        jump: keysRef.current['Space'],
+          left: keysRef.current['ArrowLeft'],
+          right: keysRef.current['ArrowRight'],
+          jump: keysRef.current['Space'],
       };
       gameInstance.handleInput(inputState);
       gameInstance.update(deltaTime);
@@ -99,7 +86,7 @@ const GameCanvas = () => {
       const cameraPosition = gameInstance.getCameraPosition();
       const wasmPlatforms = gameInstance.getPlatforms();
       const playerAnim = gameInstance.getPlayerAnimationState();
-
+      
       const jsPlatforms: Platform[] = [];
       for (let i = 0; i < wasmPlatforms.size(); i++) {
         jsPlatforms.push(wasmPlatforms.get(i));
@@ -111,19 +98,18 @@ const GameCanvas = () => {
 
       animationFrameId = requestAnimationFrame(gameLoop);
     };
-
     animationFrameId = requestAnimationFrame(gameLoop);
+    return () => { cancelAnimationFrame(animationFrameId); };
+  }, [isReady]);
 
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [isReady]); // The dependency array ensures this effect runs when isReady changes.
-
-  const canvasStyle: React.CSSProperties = {
-    width: '100%', height: '100%', backgroundColor: '#000',
-    borderRadius: '8px', boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
+  const canvasStyle: React.CSSProperties = { 
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    borderRadius: '8px',
+    boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
     border: '2px solid var(--primary-color)'
-  };
+   };
   return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
 };
 
