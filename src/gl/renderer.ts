@@ -19,7 +19,7 @@ export class Renderer {
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
 
-  constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
+  constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
     this.gl = context;
