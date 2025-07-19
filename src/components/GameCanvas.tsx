@@ -11,16 +11,15 @@ const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
-  const animationFrameId = useRef<number>(0);
   const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
-
-  // FIX: Use refs to store textures. This prevents the component from re-rendering
-  // and creating a stale closure for the game loop.
   const playerTextureRef = useRef<WebGLTexture | null>(null);
   const platformTextureRef = useRef<WebGLTexture | null>(null);
   
+  // FIX: A state to track when all assets are loaded and we are ready to start the game loop.
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -32,11 +31,10 @@ const GameCanvas = () => {
     };
   }, []);
 
+  // FIX: This useEffect handles the one-time setup and asset loading.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    let lastTime = 0;
     
     const initialize = async () => {
       try {
@@ -51,28 +49,40 @@ const GameCanvas = () => {
           renderer.loadTexture(WAZZY_SPRITE_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
-        // FIX: Store the loaded textures in refs instead of state.
         playerTextureRef.current = pTex;
         platformTextureRef.current = platTex;
 
-        lastTime = performance.now();
-        gameLoop(lastTime);
+        // Once everything is loaded, set the ready flag to start the game loop.
+        setIsReady(true);
       } catch (error) {
         console.error("Failed to initialize game:", error);
       }
     };
 
+    initialize();
+
+    return () => {
+      // Cleanup the C++ game instance when the component unmounts.
+      if (gameInstanceRef.current) gameInstanceRef.current.delete();
+    };
+  }, []);
+
+  // FIX: This useEffect handles the game loop itself. It only runs when 'isReady' becomes true.
+  useEffect(() => {
+    if (!isReady) return; // Don't start the loop until we are ready.
+
+    let lastTime = performance.now();
+    let animationFrameId = 0;
+    
     const gameLoop = (timestamp: number) => {
       const renderer = rendererRef.current;
       const gameInstance = gameInstanceRef.current;
-      
-      // FIX: Get the current textures directly from the refs inside the loop.
       const pTex = playerTextureRef.current;
       const platTex = platformTextureRef.current;
 
-      // The check for loading is now implicitly handled by the textures being null.
+      // This check is still a good safeguard.
       if (!renderer || !gameInstance || !pTex || !platTex) {
-        animationFrameId.current = requestAnimationFrame(gameLoop);
+        animationFrameId = requestAnimationFrame(gameLoop);
         return;
       }
       
@@ -100,16 +110,15 @@ const GameCanvas = () => {
       
       renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, pTex, platTex);
 
-      animationFrameId.current = requestAnimationFrame(gameLoop);
+      animationFrameId = requestAnimationFrame(gameLoop);
     };
 
-    initialize();
+    animationFrameId = requestAnimationFrame(gameLoop);
 
     return () => {
-      cancelAnimationFrame(animationFrameId.current);
-      if (gameInstanceRef.current) gameInstanceRef.current.delete();
+      cancelAnimationFrame(animationFrameId);
     };
-  }, []); // The dependency array is now correctly empty.
+  }, [isReady]); // The dependency array ensures this effect runs when isReady changes.
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
