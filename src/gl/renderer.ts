@@ -171,7 +171,7 @@ export class Renderer {
         frameX = (playerAnim.currentFrame % 6);
       } else if (playerAnim.currentState === "jump") {
         frameY = 2;
-        frameX = (playerAnim.currentFrame % 2);
+        frameX = 0;
       }
 
       const frameCoord = { x: frameX * frameSize.x, y: frameY * frameSize.y };
