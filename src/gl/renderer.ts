@@ -150,9 +150,13 @@ public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], 
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-    for (const platform of platforms) {
-      this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
+    if (platformTexture) {
+      for (const platform of platforms) {
+        this.drawSprite(platform.position, platform.size, platformTexture);
+      }
     }
-    this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
+    if (playerTexture) {
+      this.drawSprite(playerPosition, playerSize, playerTexture);
+    }
   }
 }
