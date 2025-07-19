@@ -16,8 +16,11 @@ const GameCanvas = () => {
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
 
-  const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
-  const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
+  // FIX: Use refs to store textures. This prevents the component from re-rendering
+  // and re-initializing the game loop when the textures are loaded.
+  const playerTextureRef = useRef<WebGLTexture | null>(null);
+  const platformTextureRef = useRef<WebGLTexture | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,8 +53,9 @@ const GameCanvas = () => {
           renderer.loadTexture(WAZZY_SPRITE_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
-        setPlayerTexture(pTex);
-        setPlatformTexture(platTex);
+        // FIX: Store the loaded textures in refs instead of state.
+        playerTextureRef.current = pTex;
+        platformTextureRef.current = platTex;
         setIsLoading(false);
 
         lastTime = performance.now();
@@ -65,10 +69,11 @@ const GameCanvas = () => {
       const renderer = rendererRef.current;
       const gameInstance = gameInstanceRef.current;
       
-      // We need to check for the textures directly here now.
-      const pTex = playerTexture;
-      const platTex = platformTexture;
+      // FIX: Get the current textures directly from the refs inside the loop.
+      const pTex = playerTextureRef.current;
+      const platTex = platformTextureRef.current;
 
+      // The check for loading is now implicitly handled by the textures being null.
       if (!renderer || !gameInstance || !pTex || !platTex) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
         return;
@@ -107,9 +112,7 @@ const GameCanvas = () => {
       cancelAnimationFrame(animationFrameId.current);
       if (gameInstanceRef.current) gameInstanceRef.current.delete();
     };
-  // FIX: The dependency array is now empty. This ensures the initialization
-  // and game loop setup only ever run once.
-  }, []);
+  }, []); // The dependency array is now correctly empty.
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
