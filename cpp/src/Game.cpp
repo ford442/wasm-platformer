@@ -1,14 +1,12 @@
 #include "Game.hpp"
 #include <cmath>
-#include <algorithm> // Needed for std::abs
+#include <algorithm>
 
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.3f, 0.3f};
+    playerSize = {0.3f, 0.3f}; // Using the larger player size
     cameraPosition = {0.0f, 0.0f};
-    
-    // Initialize animation state.
     playerAnimation = {"idle", 0, false};
 
     // Level layout
@@ -63,26 +61,28 @@ void Game::update(float deltaTime) {
             float deltaY = playerPosition.y - platform.position.y;
             float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
 
-            if (penetrationX < penetrationY) {
-                if (deltaX > 0) {
-                    playerPosition.x += penetrationX;
-                } else {
-                    playerPosition.x -= penetrationX;
-                }
-                playerVelocity.x = 0;
-            } else {
-                if (deltaY > 0) {
+            if (penetrationY < penetrationX) {
+                // Vertical collision
+                if (deltaY > 0) { // Player is above the platform center
                     playerPosition.y += penetrationY;
                     if (playerVelocity.y < 0) {
                         playerVelocity.y = 0;
                     }
                     isGrounded = true;
-                } else {
+                } else { // Player is below the platform center
                     playerPosition.y -= penetrationY;
                     if (playerVelocity.y > 0) {
                         playerVelocity.y = 0;
                     }
                 }
+            } else {
+                // Horizontal collision
+                if (deltaX > 0) { // Player is to the right of the platform center
+                    playerPosition.x += penetrationX;
+                } else {
+                    playerPosition.x -= penetrationX;
+                }
+                playerVelocity.x = 0;
             }
         }
     }
@@ -95,26 +95,16 @@ void Game::update(float deltaTime) {
         newState = "run";
     }
 
-    // FIX: If the animation state has changed, reset the frame counter.
     if (newState != playerAnimation.currentState) {
         playerAnimation.currentState = newState;
         playerAnimation.currentFrame = 0;
-        animationTimer = 0.0f; // Also reset the timer for instant feedback
+        animationTimer = 0.0f;
     }
 
     animationTimer += deltaTime;
     if (animationTimer > 0.1f) {
         animationTimer = 0.0f;
-        playerAnimation.currentFrame++;
-        if (playerAnimation.currentState == "idle" && playerAnimation.currentFrame >= 4) {
-            playerAnimation.currentFrame = 0;
-        }
-        if (playerAnimation.currentState == "run" && playerAnimation.currentFrame >= 6) {
-            playerAnimation.currentFrame = 0;
-        }
-        if (playerAnimation.currentState == "jump" && playerAnimation.currentFrame >= 2) {
-            playerAnimation.currentFrame = 0;
-        }
+        playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
     }
 
     // --- Update Camera ---
@@ -132,5 +122,4 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
-Vec2 Game::getPlayerSize() const { return playerSize; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
