@@ -5,21 +5,18 @@ import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
 
 const WAZZY_SPRITE_URL = './wazzy.png';
+const WAZZY_SPRITESHEET_URL = '/wazzy_spritesheet.png'; // NEW
 const PLATFORM_TEXTURE_URL = './platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
-  const keysRef = useRef<Record<string, boolean>>({
-    'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
-  });
+  const keysRef = useRef<Record<string, boolean>>({ 'ArrowLeft': false, 'ArrowRight': false, 'Space': false });
   const playerTextureRef = useRef<WebGLTexture | null>(null);
   const platformTextureRef = useRef<WebGLTexture | null>(null);
-  
-  // FIX: A state to track when all assets are loaded and we are ready to start the game loop.
   const [isReady, setIsReady] = useState(false);
-
+  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -46,7 +43,7 @@ const GameCanvas = () => {
         rendererRef.current = renderer;
 
         const [pTex, platTex] = await Promise.all([
-          renderer.loadTexture(WAZZY_SPRITE_URL),
+          renderer.loadTexture(WAZZY_SPRITESHEET_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
         playerTextureRef.current = pTex;
@@ -100,7 +97,8 @@ const GameCanvas = () => {
       const playerPosition = gameInstance.getPlayerPosition();
       const cameraPosition = gameInstance.getCameraPosition();
       const wasmPlatforms = gameInstance.getPlatforms();
-      
+      const playerAnim = gameInstance.getPlayerAnimationState();
+
       const jsPlatforms: Platform[] = [];
       for (let i = 0; i < wasmPlatforms.size(); i++) {
         jsPlatforms.push(wasmPlatforms.get(i));
@@ -108,7 +106,7 @@ const GameCanvas = () => {
 
       const playerSize = { x: 0.2, y: 0.2 }; 
       
-      renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, pTex, platTex);
+      renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, pTex, platTex, playerAnim);
 
       animationFrameId = requestAnimationFrame(gameLoop);
     };
