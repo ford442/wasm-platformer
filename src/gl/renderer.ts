@@ -41,6 +41,7 @@ export class Renderer {
     this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
     this.modelSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_size');
     this.colorUniformLocation = this.gl.getUniformLocation(this.program, 'u_color');
+    this.texCoordAttributeLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
