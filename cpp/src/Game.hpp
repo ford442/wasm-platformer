@@ -23,6 +23,8 @@ public:
     Vec2 getCameraPosition() const;
     const std::vector<Platform>& getPlatforms() const;
     AnimationState getPlayerAnimationState() const;
+    Vec2 getPlayerSize() const;
+
 
 private:
     bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
