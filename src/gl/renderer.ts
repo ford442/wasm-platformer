@@ -162,7 +162,7 @@ export class Renderer {
       const sheetSize = { x: sheetDimensions.width, y: sheetDimensions.height };
       let frameX = 0;
       let frameY = 0;
-      const idleFrames = [0, 1]; // Simple 2-frame idle
+      const idleFrames = [0]; // Simple 2-frame idle
       const runFrames = [0, 1, 2, 3]; // 4-frame run
       const jumpFrames = [0]; // Single jump frame
 
