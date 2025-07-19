@@ -75,7 +75,7 @@ const GameCanvas = () => {
           renderer.loadTexture(WAZZY_SPRITE_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
-        setPlayerTexture(pTex);
+      //  setPlayerTexture(pTex);
         setPlatformTexture(platTex);
 
         setIsLoading(false);
