@@ -76,7 +76,7 @@ const GameCanvas = () => {
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
         setPlayerTexture(pTex);
-      //  setPlatformTexture(platTex);
+        setPlatformTexture(platTex);
 
         setIsLoading(false);
 
