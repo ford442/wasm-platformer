@@ -19,4 +19,3 @@ export const loadWasmModule = async (): Promise<GameModule> => {
   if (!factory) throw new Error("WASM module factory not found on window.");
   return await factory() as GameModule;
 };
-
