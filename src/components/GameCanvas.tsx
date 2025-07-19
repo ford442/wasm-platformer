@@ -85,7 +85,7 @@ const gameLoop = (timestamp: number) => {
           jsPlatforms.push(wasmPlatforms.get(i));
         }
         const playerSize = { x: 0.2, y: 0.2 }; 
-        renderer.drawScene(playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
+        renderer.drawScene(playerPosition, playerSize, jsPlatforms, playerTextureRef, platformTextureRef);
       }
       animationFrameId.current = requestAnimationFrame(gameLoop);
     };
@@ -94,7 +94,7 @@ const gameLoop = (timestamp: number) => {
       cancelAnimationFrame(animationFrameId.current);
       if (gameInstanceRef.current) gameInstanceRef.current.delete();
     };
-}, [playerTexture, platformTexture]);
+}, [playerTextureRef, platformTextureRef]);
 
 const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
