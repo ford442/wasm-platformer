@@ -52,7 +52,6 @@ void Game::update(float deltaTime) {
     isGrounded = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
-            // Calculate penetration on both axes
             float playerHalfX = playerSize.x / 2.0f;
             float playerHalfY = playerSize.y / 2.0f;
             float platformHalfX = platform.size.x / 2.0f;
@@ -64,24 +63,21 @@ void Game::update(float deltaTime) {
             float deltaY = playerPosition.y - platform.position.y;
             float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
 
-            // Resolve collision on the axis with the smallest penetration
             if (penetrationX < penetrationY) {
-                // Horizontal collision
-                if (deltaX > 0) { // Player is to the right of the platform center
+                if (deltaX > 0) {
                     playerPosition.x += penetrationX;
                 } else {
                     playerPosition.x -= penetrationX;
                 }
                 playerVelocity.x = 0;
             } else {
-                // Vertical collision
-                if (deltaY > 0) { // Player is above the platform center
+                if (deltaY > 0) {
                     playerPosition.y += penetrationY;
                     if (playerVelocity.y < 0) {
                         playerVelocity.y = 0;
                     }
                     isGrounded = true;
-                } else { // Player is below the platform center
+                } else {
                     playerPosition.y -= penetrationY;
                     if (playerVelocity.y > 0) {
                         playerVelocity.y = 0;
@@ -92,12 +88,18 @@ void Game::update(float deltaTime) {
     }
     
     // --- Animation Logic ---
+    std::string newState = "idle";
     if (!isGrounded) {
-        playerAnimation.currentState = "jump";
+        newState = "jump";
     } else if (playerVelocity.x != 0) {
-        playerAnimation.currentState = "run";
-    } else {
-        playerAnimation.currentState = "idle";
+        newState = "run";
+    }
+
+    // FIX: If the animation state has changed, reset the frame counter.
+    if (newState != playerAnimation.currentState) {
+        playerAnimation.currentState = newState;
+        playerAnimation.currentFrame = 0;
+        animationTimer = 0.0f; // Also reset the timer for instant feedback
     }
 
     animationTimer += deltaTime;
@@ -122,4 +124,3 @@ Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
-
