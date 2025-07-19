@@ -100,7 +100,7 @@ export class Renderer {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
-  private drawSprite(position: Vec2, size: Vec2, texture: WebGLTexture) {
+  private drawSprite(position: Vec2, size: Vec2, texture: WebGLTexture, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
@@ -126,7 +126,7 @@ export class Renderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null) {
+  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
