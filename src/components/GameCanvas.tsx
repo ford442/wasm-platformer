@@ -70,13 +70,14 @@ const GameCanvas = () => {
         
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
         rendererRef.current = renderer;
-
+/*
         const [pTex, platTex] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITE_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
         setPlayerTexture(pTex);
         setPlatformTexture(platTex);
+        */
         setIsLoading(false);
 
         lastTime = performance.now();
