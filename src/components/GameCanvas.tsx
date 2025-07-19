@@ -7,7 +7,6 @@ const PLATFORM_TEXTURE_URL = './platform.png';
 
 const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
 const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
-const [isLoading, setIsLoading] = useState(true);
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,7 +59,6 @@ const initialize = async () => {
         ]);
         setPlayerTexture(pTex);
         setPlatformTexture(platTex);
-        setIsLoading(false);
         lastTime = performance.now();
         gameLoop(lastTime);
       } catch (error) {
