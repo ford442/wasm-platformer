@@ -3,8 +3,8 @@
   FILE: src/gl/renderer.ts (Updated)
 ================================================================================
 */
-import vertexShaderSource from './shaders/basic.vert.glsl?raw';
-import fragmentShaderSource from './shaders/basic.frag.glsl?raw';
+import vertexShaderSource from './shaders/tex.vert.glsl?raw';
+import fragmentShaderSource from './shaders/tex.frag.glsl?raw';
 
 // Interfaces to match the C++ structs
 export interface Vec2 {
@@ -20,10 +20,13 @@ export class Renderer {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
   private positionAttributeLocation: number;
+  private texCoordAttributeLocation: number;
   private modelPositionUniformLocation: WebGLUniformLocation | null;
   private modelSizeUniformLocation: WebGLUniformLocation | null;
   private colorUniformLocation: WebGLUniformLocation | null;
-  private unitSquareBuffer: WebGLBuffer | null = null;
+  private unitSquarePositionBuffer: WebGLBuffer | null = null;
+  private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
+  private textureUniformLocation: WebGLUniformLocation | null;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('webgl2');
@@ -74,11 +77,37 @@ export class Renderer {
       return program;
   }
 
+  
+  public async loadTexture(url: string): Promise<WebGLTexture> {
+    const texture = this.gl.createTexture();
+    if (!texture) throw new Error('Could not create texture');
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.src = url;
+      image.onload = () => {
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+        this.gl.generateMipmap(this.gl.TEXTURE_2D);
+        resolve(texture);
+      };
+      image.onerror = (err) => reject(`Failed to load texture from ${url}: ${err}`);
+    });
+  }
+
+  
   private setupUnitSquare() {
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
-    this.unitSquareBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
+    this.unitSquarePositionBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+    const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+    this.unitSquareTexCoordBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
   public clear() {
@@ -115,7 +144,7 @@ private drawSprite(position: Vec2, size: Vec2, texture: WebGLTexture) {
     this.clear();
     this.gl.useProgram(this.program);
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
