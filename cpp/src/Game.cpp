@@ -105,7 +105,16 @@ void Game::update(float deltaTime) {
     animationTimer += deltaTime;
     if (animationTimer > 0.1f) {
         animationTimer = 0.0f;
-        playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
+        playerAnimation.currentFrame++;
+        if (playerAnimation.currentState == "idle" && playerAnimation.currentFrame >= 4) {
+            playerAnimation.currentFrame = 0;
+        }
+        if (playerAnimation.currentState == "run" && playerAnimation.currentFrame >= 6) {
+            playerAnimation.currentFrame = 0;
+        }
+        if (playerAnimation.currentState == "jump" && playerAnimation.currentFrame >= 2) {
+            playerAnimation.currentFrame = 0;
+        }
     }
 
     // --- Update Camera ---
