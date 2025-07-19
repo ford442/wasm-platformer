@@ -122,3 +122,4 @@ Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
+
