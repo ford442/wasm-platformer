@@ -38,16 +38,18 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Vertical Movement and Physics ---
-    // Only apply gravity if the player is in the air.
-    if (!isGrounded) {
-        playerVelocity.y += gravity * deltaTime;
-    }
-    // Update vertical position based on velocity.
+    // --- Horizontal Movement ---
+    // First, we apply the horizontal movement.
+    playerPosition.x += playerVelocity.x * deltaTime;
+    // (In a full game, we would check for wall collisions here and resolve them)
+
+    // --- Vertical Movement ---
+    // Next, we apply gravity and vertical velocity.
+    playerVelocity.y += gravity * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
     // --- Collision Resolution ---
-    // Assume we are in the air until a collision proves otherwise.
+    // Now, we check for collisions and correct the player's position.
     isGrounded = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -73,11 +75,6 @@ void Game::update(float deltaTime) {
             }
         }
     }
-
-    // --- Horizontal Movement ---
-    // Apply horizontal movement *after* all vertical physics and collisions are resolved.
-    playerPosition.x += playerVelocity.x * deltaTime;
-    // (In a full game, we would check for wall collisions here)
     
     // --- Update Camera ---
     // The camera's position is updated last, based on the final, stable player position.
