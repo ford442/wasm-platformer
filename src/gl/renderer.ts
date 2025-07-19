@@ -3,8 +3,8 @@
   FILE: src/gl/renderer.ts (Updated)
 ================================================================================
 */
-import vertexShaderSource from './shaders/basic.vert.glsl?raw';
-import fragmentShaderSource from './shaders/basic.frag.glsl?raw';
+import vertexShaderSource from './shaders/tex.vert.glsl?raw';
+import fragmentShaderSource from './shaders/tex.frag.glsl?raw';
 
 // Interfaces to match the C++ structs
 export interface Vec2 {
@@ -147,8 +147,8 @@ public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], 
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
- //   this.gl.enable(this.gl.BLEND);
-  //  this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     for (const platform of platforms) {
       this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
