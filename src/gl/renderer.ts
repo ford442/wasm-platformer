@@ -158,11 +158,11 @@ export class Renderer {
 
     if (playerTexture && playerAnim) {
       const frameSize = { x: 64, y: 64 };
-      const sheetDimensions = this.textureDimensions.get(playerTexture) || { width: 256, height: 192 };
+      const sheetDimensions = this.textureDimensions.get(playerTexture) || { width: 192, height: 192 };
       const sheetSize = { x: sheetDimensions.width, y: sheetDimensions.height };
       let frameX = 0;
       let frameY = 0;
-      const idleFrames = [0]; // Simple 2-frame idle
+      const idleFrames = [0, 2]; // Simple 2-frame idle
       const runFrames = [0, 1, 2, 3]; // 4-frame run
       const jumpFrames = [0]; // Single jump frame
 
