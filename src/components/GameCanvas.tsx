@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
-import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
-import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
+import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
+import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
 
 const WAZZY_SPRITE_URL = './wazzy.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
