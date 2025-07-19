@@ -95,7 +95,7 @@ const gameLoop = (timestamp: number) => {
       cancelAnimationFrame(animationFrameId.current);
       if (gameInstanceRef.current) gameInstanceRef.current.delete();
     };
-}, [isLoading, playerTexture, platformTexture]);
+}, [playerTexture, platformTexture]);
 
 const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
