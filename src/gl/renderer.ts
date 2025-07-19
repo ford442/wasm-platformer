@@ -3,8 +3,8 @@
   FILE: src/gl/renderer.ts (Updated)
 ================================================================================
 */
-import vertexShaderSource from './shaders/tex.vert.glsl?raw';
-import fragmentShaderSource from './shaders/tex.frag.glsl?raw';
+import vertexShaderSource from './shaders/basic.vert.glsl?raw';
+import fragmentShaderSource from './shaders/basic.frag.glsl?raw';
 
 // Interfaces to match the C++ structs
 export interface Vec2 {
