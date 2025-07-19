@@ -5,7 +5,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.2f, 0.2f};
+    playerSize = {0.3f, 0.3f};
     cameraPosition = {0.0f, 0.0f};
     
     // Initialize animation state.
