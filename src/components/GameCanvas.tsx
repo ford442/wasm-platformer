@@ -105,7 +105,7 @@ const GameCanvas = () => {
         jsPlatforms.push(wasmPlatforms.get(i));
       }
 
-      const playerSize = { x: 0.1, y: 0.2 }; 
+      const playerSize = { x: 0.2, y: 0.2 }; 
       
       renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, pTex, platTex, playerAnim);
 
