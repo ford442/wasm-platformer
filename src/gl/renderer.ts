@@ -93,12 +93,33 @@ export class Renderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[]) {
+private drawSprite(position: Vec2, size: Vec2, texture: WebGLTexture) {
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.uniform1i(this.textureUniformLocation, 0);
+    this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
+    this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
+  if (this.positionAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.positionAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+  }
+ if (this.texCoordAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+        this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+  }
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+  
+  public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null) {
     this.clear();
     this.gl.useProgram(this.program);
     this.gl.enableVertexAttribArray(this.positionAttributeLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
     for (const platform of platforms) {
       this.drawRect(platform.position, platform.size, [0.5, 0.5, 0.5, 1.0]);
     }
