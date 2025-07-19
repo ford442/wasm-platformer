@@ -15,6 +15,7 @@ export class Renderer {
   private flipHorizontalUniformLocation: WebGLUniformLocation | null;
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
+  private textureDimensions: Map<WebGLTexture, { width: number, height: number }> = new Map();
 
   constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
     const context = canvas.getContext('webgl2');
@@ -84,10 +85,16 @@ export class Renderer {
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
         this.gl.generateMipmap(this.gl.TEXTURE_2D);
+        
+        this.textureDimensions.set(texture, { width: image.width, height: image.height });
         resolve(texture);
       };
       image.onerror = (err) => reject(`Failed to load texture from ${url}: ${err}`);
     });
+  }
+
+  public getTextureDimensions(texture: WebGLTexture): { width: number, height: number } | undefined {
+    return this.textureDimensions.get(texture);
   }
 
   private setupUnitSquare() {
@@ -108,7 +115,11 @@ export class Renderer {
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
     
-    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
+    // Pass sprite-sheet-related uniforms
+    const dimensions = this.textureDimensions.get(texture);
+    if (dimensions) {
+        this.gl.uniform2f(this.spriteSheetSizeUniformLocation, dimensions.width, dimensions.height);
+    }
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
@@ -133,26 +144,28 @@ export class Renderer {
     this.gl.enable(this.gl.BLEND); this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     if (platformTexture) {
-      for (const platform of platforms) {
-        this.drawSprite(platform.position, platform.size, platformTexture, {x:128, y:32}, {x:128, y:32}, {x:0, y:0}, false);
-      }
+        const platformTextureSize = this.textureDimensions.get(platformTexture) || { width: 128, height: 32 };
+        for (const platform of platforms) {
+            this.drawSprite(platform.position, platform.size, platformTexture, { x: platformTextureSize.width, y: platformTextureSize.height }, { x: platformTextureSize.width, y: platformTextureSize.height }, {x:0, y:0}, false);
+        }
     }
 
     if (playerTexture && playerAnim) {
       const frameSize = { x: 64, y: 64 };
-      const sheetSize = { x: 256, y: 192 };
+      const sheetDimensions = this.textureDimensions.get(playerTexture) || { width: 256, height: 192 };
+      const sheetSize = { x: sheetDimensions.width, y: sheetDimensions.height };
       let frameX = 0;
       let frameY = 0;
 
       if (playerAnim.currentState === "idle") {
         frameY = 0;
-        frameX = (playerAnim.currentFrame % 2); 
+        frameX = (playerAnim.currentFrame % 4); 
       } else if (playerAnim.currentState === "run") {
         frameY = 1;
-        frameX = (playerAnim.currentFrame % 4);
+        frameX = (playerAnim.currentFrame % 6);
       } else if (playerAnim.currentState === "jump") {
         frameY = 2;
-        frameX = 0;
+        frameX = (playerAnim.currentFrame % 2);
       }
 
       const frameCoord = { x: frameX * frameSize.x, y: frameY * frameSize.y };
