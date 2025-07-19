@@ -1,8 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
-import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
-import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
-import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
+import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
 
 const WAZZY_SPRITE_URL = './wazzy.png';
 const WAZZY_SPRITESHEET_URL = '/wazzy_spritesheet.png'; // NEW
