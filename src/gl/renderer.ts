@@ -122,10 +122,10 @@ export class Renderer {
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
     
     // Pass sprite-sheet-related uniforms
-    const dimensions = this.textureDimensions.get(texture);
-    if (dimensions) {
+  //  const dimensions = this.textureDimensions.get(texture);
+  //  if (dimensions) {
     this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
-    }
+  //  }
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
