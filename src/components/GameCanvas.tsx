@@ -5,15 +5,15 @@ import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec
 const WAZZY_SPRITE_URL = './wazzy.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
 
-const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
-const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
-
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
   const animationFrameId = useRef<number>(0);
   
+  const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
+const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
+
 const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false,
     'ArrowRight': false,
