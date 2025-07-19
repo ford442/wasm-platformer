@@ -6,6 +6,9 @@ const WAZZY_SPRITE_URL = './wazzy.png';
 const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png'; // NEW
 const PLATFORM_TEXTURE_URL = './platform.png';
 
+import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
+import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
+
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
@@ -37,7 +40,7 @@ const GameCanvas = () => {
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         
-        const renderer = new Renderer(canvas);
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
         rendererRef.current = renderer;
 
         const [pTex, platTex] = await Promise.all([
