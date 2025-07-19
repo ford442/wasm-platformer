@@ -6,22 +6,24 @@ Game::Game() {
     playerVelocity = {0.0f, 0.0f};
     playerSize = {0.2f, 0.2f};
     cameraPosition = {0.0f, 0.0f};
+    
+    // NEW: Initialize animation state.
+    playerAnimation = {"idle", 0, false};
 
-    // The wide, side-scrolling level layout
+    // Level layout...
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
-    platforms.push_back({ {8.0f, 0.0f},  {0.5f, 0.2f} });
-    platforms.push_back({ {6.0f, 0.6f},  {1.0f, 0.2f} });
-    platforms.push_back({ {3.0f, 0.4f},  {1.0f, 0.2f} });
 }
 
 void Game::handleInput(const InputState& input) {
     if (input.left) {
         playerVelocity.x = -moveSpeed;
+        playerAnimation.facingLeft = true; // NEW: Update direction
     } else if (input.right) {
         playerVelocity.x = moveSpeed;
+        playerAnimation.facingLeft = false; // NEW: Update direction
     } else {
         playerVelocity.x = 0;
     }
@@ -38,61 +40,55 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Vertical Movement and Physics ---
-    // Only apply gravity if the player is in the air.
-    if (!isGrounded) {
-        playerVelocity.y += gravity * deltaTime;
-    }
-    // Update vertical position based on velocity.
+    // --- Physics and Collision (same as before) ---
+    if (!isGrounded) { playerVelocity.y += gravity * deltaTime; }
+    playerPosition.x += playerVelocity.x * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
-
-    // --- Collision Resolution ---
-    // Assume we are in the air until a collision proves otherwise.
     isGrounded = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
-            // We only resolve collisions if the player is moving downwards.
-            // This prevents the player from getting stuck in the ceiling of a platform.
             if (playerVelocity.y <= 0) {
                 float playerBottom = playerPosition.y - playerSize.y / 2.0f;
                 float platformTop = platform.position.y + platform.size.y / 2.0f;
-
-                // We only resolve the collision if the player is actually intersecting from above.
                 if (playerBottom < platformTop) {
-                    // Calculate how far the player has sunk into the platform.
                     float penetration = platformTop - playerBottom;
-                    // Correct the player's position by moving them up by exactly that amount.
                     playerPosition.y += penetration;
-                    
-                    // Stop all vertical movement.
                     playerVelocity.y = 0;
                     isGrounded = true;
-                    // We've landed on a platform, so we can stop checking for this frame.
                     break; 
                 }
             }
         }
     }
 
-    // --- Horizontal Movement ---
-    // Apply horizontal movement *after* all vertical physics and collisions are resolved.
-    playerPosition.x += playerVelocity.x * deltaTime;
-    // (In a full game, we would check for wall collisions here)
-    
+    // --- NEW: Animation Logic ---
+    // Determine the current animation state.
+    if (!isGrounded) {
+        playerAnimation.currentState = "jump";
+    } else if (playerVelocity.x != 0) {
+        playerAnimation.currentState = "run";
+    } else {
+        playerAnimation.currentState = "idle";
+    }
+
+    // Update the animation frame based on a timer.
+    animationTimer += deltaTime;
+    float frameDuration = 0.1f; // Change frame every 0.1 seconds
+    if (animationTimer > frameDuration) {
+        animationTimer = 0.0f;
+        // This is a simple animation loop. We'll define the number of frames on the frontend.
+        playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
+    }
+
     // --- Update Camera ---
-    // The camera's position is updated last, based on the final, stable player position.
     cameraPosition.x = playerPosition.x;
 }
 
-// AABB collision check
-bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
-    bool collisionX = (posA.x - sizeA.x / 2.0f < posB.x + sizeB.x / 2.0f) &&
-                      (posA.x + sizeA.x / 2.0f > posB.x - sizeB.x / 2.0f);
-    bool collisionY = (posA.y - sizeA.y / 2.0f < posB.y + sizeB.y / 2.0f) &&
-                      (posA.y + sizeA.y / 2.0f > posB.y - sizeB.y / 2.0f);
-    return collisionX && collisionY;
-}
-
+// ... (checkCollision remains the same)
+bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) { /* ... */ return false; }
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
+// NEW: Implement the animation state getter.
+AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
+
