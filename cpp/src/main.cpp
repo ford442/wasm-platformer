@@ -31,6 +31,8 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getPlayerPosition", &Game::getPlayerPosition)
         .function("getCameraPosition", &Game::getCameraPosition)
         .function("getPlatforms", &Game::getPlatforms)
-        // Bind the animation state getter.
-        .function("getPlayerAnimationState", &Game::getPlayerAnimationState);
+        .function("getPlayerAnimationState", &Game::getPlayerAnimationState)
+        // NEW: Expose the getPlayerSize function to JavaScript.
+        .function("getPlayerSize", &Game::getPlayerSize);
 }
+
