@@ -53,6 +53,14 @@ const initialize = async () => {
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         rendererRef.current = new Renderer(canvas);
+        
+        const [pTex, platTex] = await Promise.all([
+          rendererRef.current.loadTexture(WAZZY_SPRITE_URL),
+          rendererRef.current.loadTexture(PLATFORM_TEXTURE_URL)
+        ]);
+        setPlayerTexture(pTex);
+        setPlatformTexture(platTex);
+        setIsLoading(false);
         lastTime = performance.now();
         gameLoop(lastTime);
       } catch (error) {
