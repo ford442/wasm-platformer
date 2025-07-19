@@ -24,7 +24,10 @@ export class Renderer {
     if (!context) throw new Error('WebGL2 is not supported.');
     this.gl = context;
 
-    this.program = this.createProgram(vertexShaderSource, fragmentShaderSource);
+    const vertexShader = this.compileShader(this.gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fragmentShaderSource);
+    
+    this.program = this.createProgram(vertexShader, fragmentShader);
 
     // Get attribute and uniform locations
     this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
