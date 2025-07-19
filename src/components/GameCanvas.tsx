@@ -37,7 +37,7 @@ const GameCanvas = () => {
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         
-        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
+        const renderer = new Renderer(canvas);
         rendererRef.current = renderer;
 
         const [pTex, platTex] = await Promise.all([
