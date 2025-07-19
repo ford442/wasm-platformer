@@ -7,8 +7,6 @@
 struct Vec2 { float x; float y; };
 struct Platform { Vec2 position; Vec2 size; };
 struct InputState { bool left; bool right; bool jump; };
-
-// The AnimationState struct is re-added here.
 struct AnimationState {
     std::string currentState;
     int currentFrame;
@@ -22,25 +20,22 @@ public:
     void handleInput(const InputState& input);
 
     Vec2 getPlayerPosition() const;
+    // NEW: A getter for the player's size.
+    Vec2 getPlayerSize() const;
     Vec2 getCameraPosition() const;
     const std::vector<Platform>& getPlatforms() const;
-    // The getter for the animation state is re-added.
     AnimationState getPlayerAnimationState() const;
 
 private:
+    // ... (private members are the same)
     bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
-
     Vec2 playerPosition;
     Vec2 playerVelocity;
     Vec2 playerSize;
     Vec2 cameraPosition;
-    
-    // Animation-related members are re-added.
     AnimationState playerAnimation;
     float animationTimer = 0.0f;
-
     std::vector<Platform> platforms;
-
     const float gravity = -9.8f * 2.5f;
     const float moveSpeed = 2.0f;
     const float jumpStrength = 6.0f;
@@ -49,4 +44,3 @@ private:
 };
 
 #endif // GAME_HPP
-
