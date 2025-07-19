@@ -162,16 +162,22 @@ export class Renderer {
       const sheetSize = { x: sheetDimensions.width, y: sheetDimensions.height };
       let frameX = 0;
       let frameY = 0;
+      const idleFrames = [0, 2]; // Simple 2-frame idle
+      const runFrames = [0, 1, 2, 3]; // 4-frame run
+      const jumpFrames = [0]; // Single jump frame
 
       if (playerAnim.currentState === "idle") {
         frameY = 0;
-        frameX = (playerAnim.currentFrame % 4); 
+        const frameIndex = playerAnim.currentFrame % idleFrames.length;
+        frameX = idleFrames[frameIndex];
       } else if (playerAnim.currentState === "run") {
         frameY = 1;
-        frameX = (playerAnim.currentFrame % 6);
+        const frameIndex = playerAnim.currentFrame % runFrames.length;
+        frameX = runFrames[frameIndex];
       } else if (playerAnim.currentState === "jump") {
         frameY = 2;
-        frameX = 0;
+        const frameIndex = playerAnim.currentFrame % jumpFrames.length;
+        frameX = jumpFrames[frameIndex];
       }
 
       const frameCoord = { x: frameX * frameSize.x, y: frameY * frameSize.y };
