@@ -124,7 +124,7 @@ export class Renderer {
     // Pass sprite-sheet-related uniforms
     const dimensions = this.textureDimensions.get(texture);
     if (dimensions) {
-        this.gl.uniform2f(this.spriteSheetSizeUniformLocation, dimensions.width, dimensions.height);
+    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
     }
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
