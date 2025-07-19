@@ -11,9 +11,9 @@ const GameCanvas = () => {
   const gameInstanceRef = useRef<Game | null>(null);
   const animationFrameId = useRef<number>(0);
   
-  const [playerTexture, setPlayerTexture] = useState<WebGLTexture | null>(null);
-const [platformTexture, setPlatformTexture] = useState<WebGLTexture | null>(null);
-
+  const playerTextureRef = useRef<WebGLTexture | null>(null);
+  const platformTextureRef = useRef<WebGLTexture | null>(null);
+  
 const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false,
     'ArrowRight': false,
@@ -52,14 +52,12 @@ const initialize = async () => {
         const game = new wasmModule.Game();
         gameInstanceRef.current = game;
         rendererRef.current = new Renderer(canvas);
-     /*
         const [pTex, platTex] = await Promise.all([
-          rendererRef.current.loadTexture(WAZZY_SPRITE_URL),
-          rendererRef.current.loadTexture(PLATFORM_TEXTURE_URL)
+          renderer.loadTexture(WAZZY_SPRITE_URL),
+          renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
-        setPlayerTexture(pTex);
-        setPlatformTexture(platTex);
-      */
+        playerTextureRef.current = pTex;
+        platformTextureRef.current = platTex;
         lastTime = performance.now();
         gameLoop(lastTime);
       } catch (error) {
