@@ -155,4 +155,4 @@ public drawScene(playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], 
     this.drawRect(playerPosition, playerSize, [0.0, 0.67, 1.0, 1.0]);
   }
  }
-}
+
