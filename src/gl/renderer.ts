@@ -7,9 +7,8 @@ export class Renderer {
   private texCoordAttributeLocation: number;
   private modelPositionUniformLocation: WebGLUniformLocation | null;
   private modelSizeUniformLocation: WebGLUniformLocation | null;
-  private textureUniformLocation: WebGLUniformLocation | null;
-  // FIX: Added camera position uniform location
   private cameraPositionUniformLocation: WebGLUniformLocation | null;
+  private textureUniformLocation: WebGLUniformLocation | null;
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
 
@@ -26,9 +25,8 @@ export class Renderer {
     this.texCoordAttributeLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
     this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
     this.modelSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_size');
-    this.textureUniformLocation = this.gl.getUniformLocation(this.program, 'u_texture');
-    // FIX: Get the camera uniform location from the shader
     this.cameraPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_camera_position');
+    this.textureUniformLocation = this.gl.getUniformLocation(this.program, 'u_texture');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
@@ -98,28 +96,25 @@ export class Renderer {
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
 
-  //  if (this.positionAttributeLocation !== -1) {
+    if (this.positionAttributeLocation !== -1) {
         this.gl.enableVertexAttribArray(this.positionAttributeLocation);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
         this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
- //   }
+    }
 
- //   if (this.texCoordAttributeLocation !== -1) {
+    if (this.texCoordAttributeLocation !== -1) {
         this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
         this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-  //  }
+    }
 
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  // FIX: Added cameraPosition parameter
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
-    
-    // FIX: Set the camera position uniform for the shader
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     
     this.gl.enable(this.gl.BLEND);
