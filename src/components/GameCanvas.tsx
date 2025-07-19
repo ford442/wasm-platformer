@@ -17,12 +17,10 @@ const GameCanvas = () => {
   });
 
   // FIX: Use refs to store textures. This prevents the component from re-rendering
-  // and re-initializing the game loop when the textures are loaded.
+  // and creating a stale closure for the game loop.
   const playerTextureRef = useRef<WebGLTexture | null>(null);
   const platformTextureRef = useRef<WebGLTexture | null>(null);
   
-  const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -56,7 +54,6 @@ const GameCanvas = () => {
         // FIX: Store the loaded textures in refs instead of state.
         playerTextureRef.current = pTex;
         platformTextureRef.current = platTex;
-        setIsLoading(false);
 
         lastTime = performance.now();
         gameLoop(lastTime);
