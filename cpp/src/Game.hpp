@@ -18,6 +18,7 @@ public:
     Game();
     void update(float deltaTime);
     void handleInput(const InputState& input);
+    Vec2 getPlayerSize() const;
 
     Vec2 getPlayerPosition() const;
     Vec2 getCameraPosition() const;
