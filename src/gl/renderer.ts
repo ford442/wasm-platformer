@@ -132,7 +132,7 @@ private projectionUniformLocation: WebGLUniformLocation | null;
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
-
+/*
   createOrthographic(
   left: number,
   right: number,
@@ -168,7 +168,7 @@ private projectionUniformLocation: WebGLUniformLocation | null;
 
   return mat;
 }
-
+*/
  const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
 
     
