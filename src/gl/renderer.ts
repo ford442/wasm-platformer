@@ -117,7 +117,7 @@ export class Renderer {
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     
     // FIX: Pass a float (1.0 or -1.0) to the shader for flipping.
-    this.gl.uniform1f(this.flipHorizontalUniformLocation, facingLeft ? -1.0 : 1.0);
+    this.gl.uniform1f(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
 
     if (this.positionAttributeLocation !== -1) {
         this.gl.enableVertexAttribArray(this.positionAttributeLocation);
