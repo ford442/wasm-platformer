@@ -46,14 +46,68 @@ export class Renderer {
     this.setupUnitSquare();
   }
   
-  private compileShader(type: number, source: string): WebGLShader { /* ... */ return this.gl.createShader(type)!; }
-  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram { /* ... */ return this.gl.createProgram()!; }
+  // FIX: Replaced the previous implementation with a more robust version.
+  private compileShader(type: number, source: string): WebGLShader {
+      const shader = this.gl.createShader(type);
+      if (!shader) {
+          throw new Error('Unable to create shader');
+      }
+      this.gl.shaderSource(shader, source);
+      this.gl.compileShader(shader);
+      if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+          const errorLog = this.gl.getShaderInfoLog(shader);
+          this.gl.deleteShader(shader);
+          throw new Error(`Failed to compile shader: ${errorLog}`);
+      }
+      return shader;
+  }
+
+  // FIX: Replaced the previous implementation with a more robust version.
+  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+      const program = this.gl.createProgram();
+      if (!program) {
+          throw new Error('Unable to create program');
+      }
+      this.gl.attachShader(program, vertexShader);
+      this.gl.attachShader(program, fragmentShader);
+      this.gl.linkProgram(program);
+      if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+          const errorLog = this.gl.getProgramInfoLog(program);
+          this.gl.deleteProgram(program);
+          throw new Error(`Failed to link program: ${errorLog}`);
+      }
+      return program;
+  }
   
-  public async loadTexture(url: string): Promise<TextureObject> { /* ... */ return { texture: this.gl.createTexture()!, width: 0, height: 0 }; }
+  public async loadTexture(url: string): Promise<TextureObject> {
+      const texture = this.gl.createTexture()!;
+      this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+      return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.src = url;
+          image.onload = () => {
+              this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+              this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+              this.gl.generateMipmap(this.gl.TEXTURE_2D);
+              resolve({ texture, width: image.width, height: image.height });
+          };
+          image.onerror = (err) => reject(`Failed to load texture from ${url}: ${err}`);
+      });
+  }
 
-  private setupUnitSquare() { /* ... */ }
+  private setupUnitSquare() {
+      const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
+      this.unitSquarePositionBuffer = this.gl.createBuffer();
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
 
-  // FIX: Corrected the function signature to accept all 7 arguments.
+      const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+      this.unitSquareTexCoordBuffer = this.gl.createBuffer();
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+  }
+
   private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
@@ -65,8 +119,16 @@ export class Renderer {
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
 
-    if (this.positionAttributeLocation !== -1) { /* ... */ }
-    if (this.texCoordAttributeLocation !== -1) { /* ... */ }
+    if (this.positionAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.positionAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
+    if (this.texCoordAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+        this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
