@@ -18,3 +18,4 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getPlayerAnimationState", &Game::getPlayerAnimationState)
         // FIX: This binding will now work correctly.
         .function("getPlayerSize", &Game::getPlayerSize);
+}
