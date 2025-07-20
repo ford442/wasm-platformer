@@ -40,45 +40,6 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.setupUnitSquare();
   }
   
-  createOrthographic(
-  left: number,
-  right: number,
-  bottom: number,
-  top: number,
-  near: number,
-  far: number
-): Float32Array {
-  const mat = new Float32Array(16); // 4x4 matrix
-  const lr = 1 / (left - right);
-  const bt = 1 / (bottom - top);
-  const nf = 1 / (near - far);
-
-  mat[0] = -2 * lr;
-  mat[1] = 0;
-  mat[2] = 0;
-  mat[3] = 0;
-
-  mat[4] = 0;
-  mat[5] = -2 * bt;
-  mat[6] = 0;
-  mat[7] = 0;
-
-  mat[8] = 0;
-  mat[9] = 0;
-  mat[10] = 2 * nf;
-  mat[11] = 0;
-
-  mat[12] = (left + right) * lr;
-  mat[13] = (top + bottom) * bt;
-  mat[14] = (far + near) * nf;
-  mat[15] = 1;
-
-  return mat;
-}
-
-// Call this to generate the matrix
-const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
-  
   private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type);
     if (!shader) throw new Error('Unable to create shader');
@@ -171,6 +132,46 @@ const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height,
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
+
+  createOrthographic(
+  left: number,
+  right: number,
+  bottom: number,
+  top: number,
+  near: number,
+  far: number
+): Float32Array {
+  const mat = new Float32Array(16); // 4x4 matrix
+  const lr = 1 / (left - right);
+  const bt = 1 / (bottom - top);
+  const nf = 1 / (near - far);
+
+  mat[0] = -2 * lr;
+  mat[1] = 0;
+  mat[2] = 0;
+  mat[3] = 0;
+
+  mat[4] = 0;
+  mat[5] = -2 * bt;
+  mat[6] = 0;
+  mat[7] = 0;
+
+  mat[8] = 0;
+  mat[9] = 0;
+  mat[10] = 2 * nf;
+  mat[11] = 0;
+
+  mat[12] = (left + right) * lr;
+  mat[13] = (top + bottom) * bt;
+  mat[14] = (far + near) * nf;
+  mat[15] = 1;
+
+  return mat;
+}
+
+ const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
+
+    
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.uniformMatrix4fv(this.projectionUniformLocation, false, projectionMatrix);
 
