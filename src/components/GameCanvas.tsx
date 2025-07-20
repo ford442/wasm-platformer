@@ -1,9 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Renderer, type TextureObject } from '../gl/renderer';
+import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
-
 const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
 
@@ -11,15 +10,11 @@ const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
-  const animationFrameId = useRef<number>(0);
-  const keysRef = useRef<Record<string, boolean>>({
-    'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
-  });
-
-  const [playerTexture, setPlayerTexture] = useState<TextureObject | null>(null);
-  const [platformTexture, setPlatformTexture] = useState<TextureObject | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const keysRef = useRef<Record<string, boolean>>({ 'ArrowLeft': false, 'ArrowRight': false, 'Space': false });
+  const playerTextureRef = useRef<WebGLTexture | null>(null);
+  const platformTextureRef = useRef<WebGLTexture | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -38,83 +33,84 @@ const GameCanvas = () => {
     let lastTime = 0;
     
     const initialize = async () => {
-        try {
-            const wasmModule = await loadWasmModule();
-            const game = new wasmModule.Game();
-            gameInstanceRef.current = game;
-            
-            const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
-            rendererRef.current = renderer;
+      try {
+        const wasmModule = await loadWasmModule();
+        const game = new wasmModule.Game();
+        gameInstanceRef.current = game;
+        
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
+        rendererRef.current = renderer;
 
-            const [pTex, platTex] = await Promise.all([
-              renderer.loadTexture(WAZZY_SPRITESHEET_URL),
-              renderer.loadTexture(PLATFORM_TEXTURE_URL)
-            ]);
-            setPlayerTexture(pTex);
-            setPlatformTexture(platTex);
-            setIsLoading(false);
-
-            lastTime = performance.now();
-            gameLoop(lastTime);
-        } catch (error) {
-            console.error("Failed to initialize game:", error);
-        }
-    };
-
-    const gameLoop = (timestamp: number) => {
-      if (isLoading || !playerTexture || !platformTexture) {
-        animationFrameId.current = requestAnimationFrame(gameLoop);
-        return;
+        const [pTex, platTex] = await Promise.all([
+          renderer.loadTexture(WAZZY_SPRITESHEET_URL),
+          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+        ]);
+        playerTextureRef.current = pTex;
+        platformTextureRef.current = platTex;
+        setIsReady(true);
+      } catch (error) {
+        console.error("Failed to initialize game:", error);
       }
-      
-      const deltaTime = (timestamp - lastTime) / 1000.0;
-      lastTime = timestamp;
-
-      const renderer = rendererRef.current;
-      const gameInstance = gameInstanceRef.current;
-
-      if (renderer && gameInstance) {
-        const inputState: InputState = {
-            left: keysRef.current['ArrowLeft'],
-            right: keysRef.current['ArrowRight'],
-            jump: keysRef.current['Space'],
-        };
-        gameInstance.handleInput(inputState);
-        gameInstance.update(deltaTime);
-        
-        const playerPosition = gameInstance.getPlayerPosition();
-        const cameraPosition = gameInstance.getCameraPosition();
-        const wasmPlatforms = gameInstance.getPlatforms();
-        const playerAnim = gameInstance.getPlayerAnimationState();
-        const playerSize = gameInstance.getPlayerSize();
-        
-        const jsPlatforms: Platform[] = [];
-        for (let i = 0; i < wasmPlatforms.size(); i++) {
-          jsPlatforms.push(wasmPlatforms.get(i));
-        }
-        
-        renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, playerAnim);
-      }
-
-      animationFrameId.current = requestAnimationFrame(gameLoop);
     };
-
     initialize();
 
     return () => {
-      cancelAnimationFrame(animationFrameId.current);
-      if (gameInstanceRef.current) gameInstanceRef.current.delete();
+      if (gameInstanceRef.current) {
+        gameInstanceRef.current.delete();
+      }
     };
-  }, [isLoading, playerTexture, platformTexture]);
+  }, []);
 
-  const canvasStyle: React.CSSProperties = {
-      width: '100%',
-      height: '100%',
-      backgroundColor: '#000',
-      borderRadius: '8px',
-      boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
-      border: '2px solid var(--primary-color)'
-  };
+  useEffect(() => {
+    if (!isReady) return;
+    let lastTime = performance.now();
+    let animationFrameId = 0;
+    
+    const gameLoop = (timestamp: number) => {
+      const renderer = rendererRef.current;
+      const gameInstance = gameInstanceRef.current;
+      const pTex = playerTextureRef.current;
+      const platTex = platformTextureRef.current;
+      if (!renderer || !gameInstance || !pTex || !platTex) { animationFrameId = requestAnimationFrame(gameLoop); return; }
+      
+      const deltaTime = (timestamp - lastTime) / 1000.0;
+      lastTime = timestamp;
+      const inputState: InputState = {
+          left: keysRef.current['ArrowLeft'],
+          right: keysRef.current['ArrowRight'],
+          jump: keysRef.current['Space'],
+      };
+      gameInstance.handleInput(inputState);
+      gameInstance.update(deltaTime);
+      
+      const playerPosition = gameInstance.getPlayerPosition();
+      const cameraPosition = gameInstance.getCameraPosition();
+      const wasmPlatforms = gameInstance.getPlatforms();
+      const playerAnim = gameInstance.getPlayerAnimationState();
+      
+      const jsPlatforms: Platform[] = [];
+      for (let i = 0; i < wasmPlatforms.size(); i++) {
+        jsPlatforms.push(wasmPlatforms.get(i));
+      }
+
+      const playerSize = { x: 0.2, y: 0.2 }; 
+      
+      renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, pTex, platTex, playerAnim);
+
+      animationFrameId = requestAnimationFrame(gameLoop);
+    };
+    animationFrameId = requestAnimationFrame(gameLoop);
+    return () => { cancelAnimationFrame(animationFrameId); };
+  }, [isReady]);
+
+  const canvasStyle: React.CSSProperties = { 
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    borderRadius: '8px',
+    boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
+    border: '2px solid var(--primary-color)'
+   };
   return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
 };
 
