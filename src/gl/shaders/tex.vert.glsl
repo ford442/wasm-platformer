@@ -8,25 +8,21 @@ uniform vec2 u_camera_position;
 uniform vec2 u_sprite_frame_size;
 uniform vec2 u_sprite_sheet_size;
 uniform vec2 u_sprite_frame_coord;
-uniform bool u_flip_horizontal;
 
-// FIX: A projection matrix to correctly map world space to clip space.
-uniform mat4 u_projection;
+// NEW: A float to control horizontal flipping (1.0 = normal, -1.0 = flipped)
+uniform float u_flip_horizontal;
 
 out vec2 v_texCoord;
 
 void main() {
-  vec2 world_position = (a_position * u_model_size) + u_model_position;
+  // Apply the flip to the local vertex position before scaling and positioning.
+  vec2 flipped_position = a_position * vec2(u_flip_horizontal, 1.0);
+
+  vec2 world_position = (flipped_position * u_model_size) + u_model_position;
   vec2 view_position = world_position - u_camera_position;
-  
-  // FIX: Apply the projection matrix to the final position.
-  gl_Position = u_projection * vec4(view_position, 0.0, 1.0);
+  gl_Position = vec4(view_position, 0.0, 1.0);
 
-  vec2 final_texCoord = a_texCoord;
-  if (u_flip_horizontal) {
-    final_texCoord.x = 1.0 - final_texCoord.x;
-  }
-
+  // The texture coordinate calculation is now simple and doesn't need to worry about flipping.
   vec2 texelSize = u_sprite_frame_size / u_sprite_sheet_size;
-  v_texCoord = (u_sprite_frame_coord / u_sprite_sheet_size) + (final_texCoord * texelSize);
+  v_texCoord = (u_sprite_frame_coord / u_sprite_sheet_size) + (a_texCoord * texelSize);
 }
