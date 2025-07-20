@@ -115,5 +115,7 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
+Vec2 Game::getPlayerSize() const { return playerSize; }
+
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
