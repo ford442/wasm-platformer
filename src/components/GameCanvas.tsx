@@ -21,16 +21,47 @@ const GameCanvas = () => {
   const [platformTexture, setPlatformTexture] = useState<TextureObject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => { /* ... keyboard listeners ... */ }, []);
-
+ useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
+    const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+   }, []);
+  
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     let lastTime = 0;
     
-    const initialize = async () => { /* ... */ };
+const initialize = async () => {
+      try {
+        const wasmModule = await loadWasmModule();
+        const game = new wasmModule.Game();
+        gameInstanceRef.current = game;
+        
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
+        rendererRef.current = renderer;
 
+        const [pTex, platTex] = await Promise.all([
+          renderer.loadTexture(WAZZY_SPRITESHEET_URL),
+          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+        ]);
+        setPlayerTexture(pTex);
+        setPlatformTexture(platTex);
+        setIsLoading(false);
+
+        lastTime = performance.now();
+        gameLoop(lastTime);
+      } catch (error) {
+        console.error("Failed to initialize game:", error);
+      }
+    };
+    
     const gameLoop = (timestamp: number) => {
       if (isLoading || !playerTexture || !platformTexture) {
         // Use the .current property of the ref
@@ -45,7 +76,12 @@ const GameCanvas = () => {
       const gameInstance = gameInstanceRef.current;
 
       if (renderer && gameInstance) {
-        const inputState: InputState = { /* ... */ };
+        
+       const inputState: InputState = {
+          left: keysRef.current['ArrowLeft'],
+          right: keysRef.current['ArrowRight'],
+          jump: keysRef.current['Space'],
+        };
         gameInstance.handleInput(inputState);
         gameInstance.update(deltaTime);
         
