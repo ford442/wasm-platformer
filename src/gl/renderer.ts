@@ -47,10 +47,26 @@ export class Renderer {
     this.setupUnitSquare();
   }
   
-  private compileShader(type: number, source: string): WebGLShader { /* ... */ return this.gl.createShader(type)!; }
-  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram { /* ... */ return this.gl.createProgram()!; }
+  private compileShader(type: number, source: string): WebGLShader {
+      const shader = this.gl.createShader(type)!;
+      this.gl.shaderSource(shader, source);
+      this.gl.compileShader(shader);
+      if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+          throw new Error('Shader compile error: ' + this.gl.getShaderInfoLog(shader));
+      }
+      return shader;
+  }
+  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+      const program = this.gl.createProgram()!;
+      this.gl.attachShader(program, vertexShader);
+      this.gl.attachShader(program, fragmentShader);
+      this.gl.linkProgram(program);
+      if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+          throw new Error('Program link error: ' + this.gl.getProgramInfoLog(program));
+      }
+      return program;
+  }
   
-  // FIX: This function now returns a TextureObject with the image's dimensions.
   public async loadTexture(url: string): Promise<TextureObject> {
     const texture = this.gl.createTexture();
     if (!texture) throw new Error('Could not create texture');
@@ -75,22 +91,40 @@ export class Renderer {
     });
   }
 
-  private setupUnitSquare() { /* ... */ }
+  private setupUnitSquare() {
+      const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
+      this.unitSquarePositionBuffer = this.gl.createBuffer();
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
 
-  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
+      const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+      this.unitSquareTexCoordBuffer = this.gl.createBuffer();
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+  }
+
+  // FIX: Corrected the function signature to accept sheetSize.
+  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
     
-    // FIX: Use the actual dimensions from the loaded texture object.
-    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, textureObj.width, textureObj.height);
+    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
 
-    if (this.positionAttributeLocation !== -1) { /* ... */ }
-    if (this.texCoordAttributeLocation !== -1) { /* ... */ }
+    if (this.positionAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.positionAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
+    if (this.texCoordAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+        this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    }
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
@@ -102,6 +136,7 @@ export class Renderer {
 
     if (platformTexture) {
       for (const platform of platforms) {
+        // FIX: Corrected the call to match the new function signature.
         this.drawSprite(platform.position, platform.size, platformTexture, {x:platformTexture.width, y:platformTexture.height}, {x:platformTexture.width, y:platformTexture.height}, {x:0, y:0}, false);
       }
     }
@@ -123,7 +158,9 @@ export class Renderer {
       }
 
       const frameCoord = { x: frameX * frameSize.x, y: frameY * frameSize.y };
-      this.drawSprite(playerPosition, playerSize, playerTexture, frameSize, frameCoord, playerAnim.facingLeft);
+      // FIX: Corrected the call to include the sheetSize.
+      const sheetSize = { x: playerTexture.width, y: playerTexture.height };
+      this.drawSprite(playerPosition, playerSize, playerTexture, sheetSize, frameSize, frameCoord, playerAnim.facingLeft);
     }
   }
 }
