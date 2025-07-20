@@ -37,8 +37,6 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
     this.projectionUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
     
- const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
-
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
   }
@@ -172,6 +170,7 @@ private projectionUniformLocation: WebGLUniformLocation | null;
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
+ const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
 
 
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
