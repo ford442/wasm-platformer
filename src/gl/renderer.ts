@@ -34,6 +34,7 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_sheet_size');
     this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
     this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
+    this.projectionUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
