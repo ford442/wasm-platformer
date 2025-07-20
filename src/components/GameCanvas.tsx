@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { Renderer } from '../gl/renderer';
-import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform } from '../wasm/loader';
-import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
-import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
+import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
+import vertexShaderSource from '../gl/shaders/basic.vert.glsl?raw';
+import fragmentShaderSource from '../gl/shaders/basic.frag.glsl?raw';
 
 const WAZZY_SPRITESHEET_URL = './wazzy.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
@@ -24,7 +24,6 @@ const GameCanvas = () => {
     };
   }, []);
 
-  // FIX: Use a single, robust useEffect hook for initialization and the game loop.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -34,7 +33,6 @@ const GameCanvas = () => {
 
     const initializeAndRun = async () => {
       try {
-        // --- One-time Initialization ---
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
@@ -45,10 +43,9 @@ const GameCanvas = () => {
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
         
-        // --- Game Loop ---
         let lastTime = performance.now();
         const gameLoop = (timestamp: number) => {
-          if (!gameInstance) return; // Exit if game is cleaned up
+          if (!gameInstance) return;
 
           const deltaTime = (timestamp - lastTime) / 1000.0;
           lastTime = timestamp;
@@ -64,6 +61,8 @@ const GameCanvas = () => {
           const playerPosition = gameInstance.getPlayerPosition();
           const cameraPosition = gameInstance.getCameraPosition();
           const wasmPlatforms = gameInstance.getPlatforms();
+          // FIX: Get the player animation state from C++
+          const playerAnim = gameInstance.getPlayerAnimationState();
           
           const jsPlatforms: Platform[] = [];
           for (let i = 0; i < wasmPlatforms.size(); i++) {
@@ -72,12 +71,12 @@ const GameCanvas = () => {
 
           const playerSize = { x: 0.3, y: 0.3 }; 
           
-          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture);
+          // FIX: Pass the playerAnim object as the 7th argument.
+          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, playerAnim);
 
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         
-        // Start the loop only after everything is loaded.
         animationFrameId = requestAnimationFrame(gameLoop);
 
       } catch (error) {
@@ -87,14 +86,13 @@ const GameCanvas = () => {
 
     initializeAndRun();
 
-    // Cleanup function
     return () => {
       cancelAnimationFrame(animationFrameId);
       if (gameInstance) {
         gameInstance.delete();
       }
     };
-  }, []); // Empty dependency array ensures this runs only once.
+  }, []);
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
