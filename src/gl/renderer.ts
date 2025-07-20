@@ -53,8 +53,6 @@ private projectionUniformLocation: WebGLUniformLocation | null;
   return mat;
 }
 
- const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
-
   constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
@@ -172,7 +170,8 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
 
-    
+ const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
+
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.uniformMatrix4fv(this.projectionUniformLocation, false, projectionMatrix);
 
