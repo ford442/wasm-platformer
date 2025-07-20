@@ -17,6 +17,31 @@ export class Renderer {
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
 private projectionUniformLocation: WebGLUniformLocation | null;
 
+  constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
+    const context = canvas.getContext('webgl2');
+    if (!context) throw new Error('WebGL2 is not supported.');
+    this.gl = context;
+    const vertexShader = this.compileShader(this.gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
+    this.program = this.createProgram(vertexShader, fragmentShader);
+
+    this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
+    this.texCoordAttributeLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
+    this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
+    this.modelSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_size');
+    this.cameraPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_camera_position');
+    this.textureUniformLocation = this.gl.getUniformLocation(this.program, 'u_texture');
+    this.spriteFrameSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_size');
+    this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_sheet_size');
+    this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
+    this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
+    this.projectionUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
+
+    this.gl.viewport(0, 0, canvas.width, canvas.height);
+    this.setupUnitSquare();
+  }
+
+  
   createOrthographic(
   left: number,
   right: number,
@@ -53,30 +78,6 @@ private projectionUniformLocation: WebGLUniformLocation | null;
   return mat;
 }
 
-  constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
-    const context = canvas.getContext('webgl2');
-    if (!context) throw new Error('WebGL2 is not supported.');
-    this.gl = context;
-    const vertexShader = this.compileShader(this.gl.VERTEX_SHADER, vsSource);
-    const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
-    this.program = this.createProgram(vertexShader, fragmentShader);
-
-    this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
-    this.texCoordAttributeLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
-    this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
-    this.modelSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_size');
-    this.cameraPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_camera_position');
-    this.textureUniformLocation = this.gl.getUniformLocation(this.program, 'u_texture');
-    this.spriteFrameSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_size');
-    this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_sheet_size');
-    this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
-    this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
-    this.projectionUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
-
-    this.gl.viewport(0, 0, canvas.width, canvas.height);
-    this.setupUnitSquare();
-  }
-  
   private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type);
     if (!shader) throw new Error('Unable to create shader');
