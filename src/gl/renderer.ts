@@ -166,7 +166,7 @@ export class Renderer {
 
       if (playerAnim.currentState === "idle") {
         frameY = 0;
-        frameX = (playerAnim.currentFrame % 2); 
+        frameX = (playerAnim.currentFrame % 2) * 2; 
       } else if (playerAnim.currentState === "run") {
         frameY = 1;
         frameX = (playerAnim.currentFrame % 4);
