@@ -18,8 +18,10 @@ void main() {
   // Geometry is no longer flipped here. It remains centered.
   vec2 world_position = (a_position * u_model_size) + u_model_position;
   vec2 view_position = world_position - u_camera_position;
-  gl_Position = vec4(view_position, 0.0, 1.0);
-
+ vec2 world_position = (a_position * u_model_size) + u_model_position;
+  vec2 view_position = world_position - u_camera_position;
+  gl_Position = u_projection * vec4(view_position, 0.0, 1.0); // Apply projection
+ 
   // FIX: Flip the texture coordinate instead of the geometry.
   // This is a more stable method that avoids positional bugs.
   vec2 final_texCoord = a_texCoord;
