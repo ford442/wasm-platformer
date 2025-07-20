@@ -36,6 +36,8 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
     this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
     this.projectionUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
+    
+ const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
@@ -171,7 +173,6 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
 
- const projectionMatrix = this.createOrthographic(0, canvas.width, canvas.height, 0, -1, 1);
 
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.uniformMatrix4fv(this.projectionUniformLocation, false, projectionMatrix);
