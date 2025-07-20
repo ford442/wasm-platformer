@@ -1,6 +1,5 @@
 import type { Vec2, Platform, AnimationState } from '../wasm/loader';
 
-// A type to hold a texture and its dimensions together.
 export type TextureObject = {
     texture: WebGLTexture;
     width: number;
@@ -27,6 +26,7 @@ export class Renderer {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
     this.gl = context;
+
     const vertexShader = this.compileShader(this.gl.VERTEX_SHADER, vsSource);
     const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
     this.program = this.createProgram(vertexShader, fragmentShader);
@@ -47,13 +47,13 @@ export class Renderer {
   }
   
   private compileShader(type: number, source: string): WebGLShader {
-      const shader = this.gl.createShader(type)!;
-      this.gl.shaderSource(shader, source);
-      this.gl.compileShader(shader);
-      if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-          throw new Error('Shader compile error: ' + this.gl.getShaderInfoLog(shader));
-      }
-      return shader;
+    const shader = this.gl.createShader(type)!;
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      throw new Error('Shader compile error: ' + this.gl.getShaderInfoLog(shader));
+    }
+    return shader;
   }
   private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
       const program = this.gl.createProgram()!;
@@ -91,15 +91,15 @@ export class Renderer {
   }
 
   private setupUnitSquare() {
-      const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
-      this.unitSquarePositionBuffer = this.gl.createBuffer();
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
+    this.unitSquarePositionBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
 
-      const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
-      this.unitSquareTexCoordBuffer = this.gl.createBuffer();
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+    const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+    this.unitSquareTexCoordBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
   private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
@@ -108,8 +108,7 @@ export class Renderer {
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
     
-    const sheetSize = { x: textureObj.width, y: textureObj.height };
-    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
+    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, textureObj.width, textureObj.height);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
@@ -135,7 +134,7 @@ export class Renderer {
 
     if (platformTexture) {
       for (const platform of platforms) {
-        this.drawSprite(platform.position, platform.size, platformTexture, {x:platformTexture.width, y:platformTexture.height}, {x:0, y:0}, false);
+        this.drawSprite(platform.position, platform.size, platformTexture, {x:platformTexture.width, y:platformTexture.height}, {x:platformTexture.width, y:platformTexture.height}, {x:0, y:0}, false);
       }
     }
 
