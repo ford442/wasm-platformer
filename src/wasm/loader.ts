@@ -11,6 +11,8 @@ export interface Game {
   update(deltaTime: number): void;
   handleInput(inputState: InputState): void;
   getPlayerPosition(): Vec2;
+  // FIX: Added the missing getPlayerSize method to the interface.
+  getPlayerSize(): Vec2;
   getCameraPosition(): Vec2;
   getPlatforms(): PlatformList;
   getPlayerAnimationState(): AnimationState;
