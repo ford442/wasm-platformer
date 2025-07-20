@@ -1,18 +1,19 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Renderer } from '../gl/renderer';
+import { Renderer, type TextureObject } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
-const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
-const PLATFORM_TEXTURE_URL = './platform.png';
+
+const WAZZY_SPRITESHEET_URL = '/wazzy_spritesheet.png';
+const PLATFORM_TEXTURE_URL = '/platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const gameInstanceRef = useRef<Game | null>(null);
   const keysRef = useRef<Record<string, boolean>>({ 'ArrowLeft': false, 'ArrowRight': false, 'Space': false });
-  const playerTextureRef = useRef<WebGLTexture | null>(null);
-  const platformTextureRef = useRef<WebGLTexture | null>(null);
+  const playerTextureRef = useRef<TextureObject | null>(null);
+  const platformTextureRef = useRef<TextureObject | null>(null);
   const [isReady, setIsReady] = useState(false);
   
   useEffect(() => {
@@ -30,8 +31,6 @@ const GameCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let lastTime = 0;
-    
     const initialize = async () => {
       try {
         const wasmModule = await loadWasmModule();
@@ -54,11 +53,7 @@ const GameCanvas = () => {
     };
     initialize();
 
-    return () => {
-      if (gameInstanceRef.current) {
-        gameInstanceRef.current.delete();
-      }
-    };
+    return () => { if (gameInstanceRef.current) gameInstanceRef.current.delete(); };
   }, []);
 
   useEffect(() => {
@@ -93,7 +88,7 @@ const GameCanvas = () => {
         jsPlatforms.push(wasmPlatforms.get(i));
       }
 
-      const playerSize = { x: 0.2, y: 0.2 }; 
+      const playerSize = { x: 0.3, y: 0.3 }; 
       
       renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, pTex, platTex, playerAnim);
 
@@ -103,14 +98,14 @@ const GameCanvas = () => {
     return () => { cancelAnimationFrame(animationFrameId); };
   }, [isReady]);
 
-  const canvasStyle: React.CSSProperties = { 
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#000',
-    borderRadius: '8px',
-    boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
-    border: '2px solid var(--primary-color)'
-   };
+  const canvasStyle: React.CSSProperties = {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#000',
+      borderRadius: '8px',
+      boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
+      border: '2px solid var(--primary-color)'
+  };
   return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
 };
 
