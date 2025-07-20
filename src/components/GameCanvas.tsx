@@ -42,10 +42,11 @@ const GameCanvas = () => {
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL)
         ]);
-        
+          
+        // --- Game Loop ---
         let lastTime = performance.now();
         const gameLoop = (timestamp: number) => {
-          if (!gameInstance) return;
+          if (!gameInstance) return; // Exit if game is cleaned up
 
           const deltaTime = (timestamp - lastTime) / 1000.0;
           lastTime = timestamp;
@@ -61,7 +62,6 @@ const GameCanvas = () => {
           const playerPosition = gameInstance.getPlayerPosition();
           const cameraPosition = gameInstance.getCameraPosition();
           const wasmPlatforms = gameInstance.getPlatforms();
-          // FIX: Get the player animation state from C++
           const playerAnim = gameInstance.getPlayerAnimationState();
           
           const jsPlatforms: Platform[] = [];
@@ -71,12 +71,12 @@ const GameCanvas = () => {
 
           const playerSize = { x: 0.3, y: 0.3 }; 
           
-          // FIX: Pass the playerAnim object as the 7th argument.
           renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, playerAnim);
 
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         
+        // Start the loop only after everything is loaded.
         animationFrameId = requestAnimationFrame(gameLoop);
 
       } catch (error) {
