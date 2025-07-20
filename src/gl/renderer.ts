@@ -1,6 +1,6 @@
 import type { Vec2, Platform, AnimationState } from '../wasm/loader';
 
-// NEW: A type to hold a texture and its dimensions together.
+// A type to hold a texture and its dimensions together.
 export type TextureObject = {
     texture: WebGLTexture;
     width: number;
@@ -31,7 +31,6 @@ export class Renderer {
     const fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
     this.program = this.createProgram(vertexShader, fragmentShader);
 
-    // ... (Getting uniform locations is the same)
     this.positionAttributeLocation = this.gl.getAttribLocation(this.program, 'a_position');
     this.texCoordAttributeLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
     this.modelPositionUniformLocation = this.gl.getUniformLocation(this.program, 'u_model_position');
@@ -103,13 +102,13 @@ export class Renderer {
       this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
-  // FIX: Corrected the function signature to accept sheetSize.
-  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
+  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
     
+    const sheetSize = { x: textureObj.width, y: textureObj.height };
     this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
@@ -136,8 +135,7 @@ export class Renderer {
 
     if (platformTexture) {
       for (const platform of platforms) {
-        // FIX: Corrected the call to match the new function signature.
-        this.drawSprite(platform.position, platform.size, platformTexture, {x:platformTexture.width, y:platformTexture.height}, {x:platformTexture.width, y:platformTexture.height}, {x:0, y:0}, false);
+        this.drawSprite(platform.position, platform.size, platformTexture, {x:platformTexture.width, y:platformTexture.height}, {x:0, y:0}, false);
       }
     }
 
@@ -158,9 +156,7 @@ export class Renderer {
       }
 
       const frameCoord = { x: frameX * frameSize.x, y: frameY * frameSize.y };
-      // FIX: Corrected the call to include the sheetSize.
-      const sheetSize = { x: playerTexture.width, y: playerTexture.height };
-      this.drawSprite(playerPosition, playerSize, playerTexture, sheetSize, frameSize, frameCoord, playerAnim.facingLeft);
+      this.drawSprite(playerPosition, playerSize, playerTexture, frameSize, frameCoord, playerAnim.facingLeft);
     }
   }
 }
