@@ -15,7 +15,8 @@ export class Renderer {
   private flipHorizontalUniformLocation: WebGLUniformLocation | null;
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
-
+  private projectionMatrixUniformLocation: WebGLUniformLocation | null;
+  
   constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
@@ -34,7 +35,7 @@ export class Renderer {
     this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_sheet_size');
     this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
     this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
-
+    this.projectionMatrixUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
   }
@@ -131,6 +132,20 @@ export class Renderer {
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
+    
+        const aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
+    // This creates a view that is 4 units wide, and the height is adjusted to match the aspect ratio.
+    const worldWidth = 4.0;
+    const worldHeight = worldWidth / aspectRatio;
+    const projectionMatrix = [
+      2.0 / worldWidth, 0, 0, 0,
+      0, 2.0 / worldHeight, 0, 0,
+      0, 0, -1, 0,
+      0, 0, 0, 1
+    ];
+    this.gl.uniformMatrix4fv(this.projectionMatrixUniformLocation, false, projectionMatrix);
+
+    
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.enable(this.gl.BLEND); this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
