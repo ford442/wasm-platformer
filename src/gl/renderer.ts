@@ -15,7 +15,6 @@ export class Renderer {
   private flipHorizontalUniformLocation: WebGLUniformLocation | null;
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
-private projectionUniformLocation: WebGLUniformLocation | null;
 
   constructor(canvas: HTMLCanvasElement, vsSource: string, fsSource: string) {
     const context = canvas.getContext('webgl2');
@@ -35,49 +34,11 @@ private projectionUniformLocation: WebGLUniformLocation | null;
     this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_sheet_size');
     this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
     this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
-    this.projectionUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
-    
+
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupUnitSquare();
   }
-
   
-  createOrthographic(
-  left: number,
-  right: number,
-  bottom: number,
-  top: number,
-  near: number,
-  far: number
-): Float32Array {
-  const mat = new Float32Array(16); // 4x4 matrix
-  const lr = 1 / (left - right);
-  const bt = 1 / (bottom - top);
-  const nf = 1 / (near - far);
-
-  mat[0] = -2 * lr;
-  mat[1] = 0;
-  mat[2] = 0;
-  mat[3] = 0;
-
-  mat[4] = 0;
-  mat[5] = -2 * bt;
-  mat[6] = 0;
-  mat[7] = 0;
-
-  mat[8] = 0;
-  mat[9] = 0;
-  mat[10] = 2 * nf;
-  mat[11] = 0;
-
-  mat[12] = (left + right) * lr;
-  mat[13] = (top + bottom) * bt;
-  mat[14] = (far + near) * nf;
-  mat[15] = 1;
-
-  return mat;
-}
-
   private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type);
     if (!shader) throw new Error('Unable to create shader');
@@ -170,12 +131,7 @@ private projectionUniformLocation: WebGLUniformLocation | null;
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: WebGLTexture | null, platformTexture: WebGLTexture | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
- const projectionMatrix = this.createOrthographic(0, 1280, 720, 0, -1, 1);
-
-
     this.gl.uniform2f(this.cameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
-    this.gl.uniformMatrix4fv(this.projectionUniformLocation, false, projectionMatrix);
-
     this.gl.enable(this.gl.BLEND); this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     if (platformTexture) {
