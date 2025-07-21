@@ -5,8 +5,11 @@ import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec
 
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
+import backgroundFragmentSource from '../gl/shaders/background.frag.glsl?raw';
+import backgroundVertexSource from '../gl/shaders/background.vert.glsl?raw';
 const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
+const BACKGROUND_URL = './background.png'; // NEW
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,33 +37,27 @@ const GameCanvas = () => {
     let animationFrameId = 0;
     let gameInstance: Game | null = null;
     
-    // This function sets up everything and starts the game loop.
     const initializeAndRun = async () => {
       try {
-        // --- One-time Initialization ---
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
-        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexShader, backgroundFragmentShader);
 
-        const [playerTexture, platformTexture] = await Promise.all([
+        const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
-          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+          renderer.loadTexture(PLATFORM_TEXTURE_URL),
+          renderer.loadTexture(BACKGROUND_URL) // Load the new texture
         ]);
         
-        // --- Game Loop ---
         let lastTime = performance.now();
         const gameLoop = (timestamp: number) => {
-          if (!gameInstance) return; // Exit if game has been cleaned up
+          if (!gameInstance) return;
 
           const deltaTime = (timestamp - lastTime) / 1000.0;
           lastTime = timestamp;
 
-          const inputState: InputState = {
-            left: keysRef.current['ArrowLeft'],
-            right: keysRef.current['ArrowRight'],
-            jump: keysRef.current['Space'],
-          };
+          const inputState: InputState = { /* ... */ };
           gameInstance.handleInput(inputState);
           gameInstance.update(deltaTime);
           
@@ -75,12 +72,12 @@ const GameCanvas = () => {
             jsPlatforms.push(wasmPlatforms.get(i));
           }
           
-          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, playerAnim);
+          // Pass the new background texture to the renderer
+          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
 
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         
-        // Start the loop only after everything is loaded.
         animationFrameId = requestAnimationFrame(gameLoop);
 
       } catch (error) {
