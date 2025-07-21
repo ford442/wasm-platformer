@@ -3,6 +3,7 @@ precision highp float;
 in vec2 v_texCoord;
 uniform sampler2D u_texture;
 uniform vec2 u_camera_position;
+out vec4 outColor;
 
 void main() {
   float parallaxFactor = 0.1;
