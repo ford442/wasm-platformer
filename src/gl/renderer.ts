@@ -147,23 +147,24 @@ public async loadTexture(url: string): Promise<TextureObject> {
     
   private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
-    this.gl.uniform1i(this.textureUniformLocation, 0);
-    this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
-    this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
+    // FIX: Use the correct uniform location for the sprite shader.
+    this.gl.uniform1i(this.spriteTextureUniformLocation, 0);
+    this.gl.uniform2f(this.spriteModelPositionUniformLocation, position.x, position.y);
+    this.gl.uniform2f(this.spriteModelSizeUniformLocation, size.x, size.y);
     this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
-    this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
+    this.gl.uniform1i(this.spriteFlipHorizontalUniformLocation, facingLeft ? 1 : 0);
 
-    if (this.positionAttributeLocation !== -1) {
-        this.gl.enableVertexAttribArray(this.positionAttributeLocation);
+    if (this.spritePositionAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.spritePositionAttributeLocation);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
-        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.vertexAttribPointer(this.spritePositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     }
-    if (this.texCoordAttributeLocation !== -1) {
-        this.gl.enableVertexAttribArray(this.texCoordAttributeLocation);
+    if (this.spriteTexCoordAttributeLocation !== -1) {
+        this.gl.enableVertexAttribArray(this.spriteTexCoordAttributeLocation);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
-        this.gl.vertexAttribPointer(this.texCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.vertexAttribPointer(this.spriteTexCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     }
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
@@ -189,7 +190,32 @@ public async loadTexture(url: string): Promise<TextureObject> {
     this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.enable(this.gl.BLEND); this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-    if (platformTexture) { /* ... draw platforms ... */ }
-    if (playerTexture && playerAnim) { /* ... draw player ... */ }
+
+    if (platformTexture) {
+      for (const platform of platforms) {
+        this.drawSprite(platform.position, platform.size, platformTexture, {x:platformTexture.width, y:platformTexture.height}, {x:platformTexture.width, y:platformTexture.height}, {x:0, y:0}, false);
+      }
+    }
+
+    if (playerTexture && playerAnim) {
+      const frameSize = { x: 64, y: 64 };
+      const sheetSize = { x: playerTexture.width, y: playerTexture.height };
+      let frameX = 0;
+      let frameY = 0;
+
+      if (playerAnim.currentState === "idle") {
+        frameY = 0;
+        frameX = (playerAnim.currentFrame % 2); 
+      } else if (playerAnim.currentState === "run") {
+        frameY = 1;
+        frameX = (playerAnim.currentFrame % 4);
+      } else if (playerAnim.currentState === "jump") {
+        frameY = 2;
+        frameX = 0;
+      }
+
+      const frameCoord = { x: frameX * frameSize.x, y: frameY * frameSize.y };
+      this.drawSprite(playerPosition, playerSize, playerTexture, sheetSize, frameSize, frameCoord, playerAnim.facingLeft);
+    }
   }
 }
