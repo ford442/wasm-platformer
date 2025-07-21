@@ -1,6 +1,5 @@
 import type { Vec2, Platform, AnimationState } from '../wasm/loader';
 
-// This type ensures we always pass the texture along with its dimensions.
 export type TextureObject = {
     texture: WebGLTexture;
     width: number;
@@ -20,6 +19,7 @@ export class Renderer {
   private spriteSheetSizeUniformLocation: WebGLUniformLocation | null;
   private spriteFrameCoordUniformLocation: WebGLUniformLocation | null;
   private flipHorizontalUniformLocation: WebGLUniformLocation | null;
+  // FIX: Add a location for the projection matrix uniform.
   private projectionMatrixUniformLocation: WebGLUniformLocation | null;
   
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
@@ -44,6 +44,7 @@ export class Renderer {
     this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_sheet_size');
     this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.program, 'u_sprite_frame_coord');
     this.flipHorizontalUniformLocation = this.gl.getUniformLocation(this.program, 'u_flip_horizontal');
+    // FIX: Get the location of the new projection matrix uniform.
     this.projectionMatrixUniformLocation = this.gl.getUniformLocation(this.program, 'u_projection');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
@@ -106,13 +107,12 @@ export class Renderer {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
-  // FIX: Corrected the function signature to accept all 7 arguments.
-  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
+  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
-    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
+    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, textureObj.width, textureObj.height);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
@@ -134,6 +134,7 @@ export class Renderer {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.gl.useProgram(this.program);
     
+    // FIX: Calculate and set the projection matrix on every frame.
     const aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
     const worldWidth = 4.0;
     const worldHeight = worldWidth / aspectRatio;
@@ -176,4 +177,3 @@ export class Renderer {
     }
   }
 }
-
