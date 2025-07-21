@@ -57,7 +57,8 @@ const GameCanvas = () => {
 
             lastTime = performance.now();
             gameLoop(lastTime);
-        } catch (error) => {
+        // FIX: Corrected the catch block syntax.
+        } catch (error) {
             console.error("Failed to initialize game:", error);
         }
     };
