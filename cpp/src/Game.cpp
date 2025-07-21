@@ -5,7 +5,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.3f, 0.3f}; // Using the larger player size
+    playerSize = {0.3f, 0.3f};
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
 
@@ -62,22 +62,20 @@ void Game::update(float deltaTime) {
             float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
 
             if (penetrationY < penetrationX) {
-                // Vertical collision
-                if (deltaY > 0) { // Player is above the platform center
+                if (deltaY > 0) {
                     playerPosition.y += penetrationY;
                     if (playerVelocity.y < 0) {
                         playerVelocity.y = 0;
                     }
                     isGrounded = true;
-                } else { // Player is below the platform center
+                } else {
                     playerPosition.y -= penetrationY;
                     if (playerVelocity.y > 0) {
                         playerVelocity.y = 0;
                     }
                 }
             } else {
-                // Horizontal collision
-                if (deltaX > 0) { // Player is to the right of the platform center
+                if (deltaX > 0) {
                     playerPosition.x += penetrationX;
                 } else {
                     playerPosition.x -= penetrationX;
@@ -101,9 +99,13 @@ void Game::update(float deltaTime) {
         animationTimer = 0.0f;
     }
 
+    // FIX: Use a while loop to handle the animation timer.
+    // This makes the animation speed independent of the frame rate,
+    // fixing the inconsistent speed bug.
     animationTimer += deltaTime;
-    if (animationTimer > 0.1f) {
-        animationTimer = 0.0f;
+    float frameDuration = 0.1f; // How long each frame should be displayed
+    while (animationTimer >= frameDuration) {
+        animationTimer -= frameDuration;
         playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
     }
 
@@ -121,6 +123,5 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
-Vec2 Game::getPlayerSize() const { return playerSize; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
