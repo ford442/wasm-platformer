@@ -57,7 +57,12 @@ const GameCanvas = () => {
           const deltaTime = (timestamp - lastTime) / 1000.0;
           lastTime = timestamp;
 
-          const inputState: InputState = { /* ... */ };
+ 
+          const inputState: InputState = {
+            left: keysRef.current['ArrowLeft'],
+            right: keysRef.current['ArrowRight'],
+            jump: keysRef.current['Space'],
+          };
           gameInstance.handleInput(inputState);
           gameInstance.update(deltaTime);
           
