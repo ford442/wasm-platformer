@@ -168,22 +168,6 @@ public async loadTexture(url: string): Promise<TextureObject> {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
          
-private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
-    this.gl.useProgram(this.backgroundProgram);
-
-    this.gl.bindTexture(this.gl.TEXTURE_2D, backgroundTexture.texture);
-    this.gl.uniform1i(this.backgroundTextureUniformLocation, 0);
-
-    this.gl.uniform2f(this.backgroundCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
-    this.gl.uniform2f(this.backgroundTextureSizeUniformLocation, backgroundTexture.width, backgroundTexture.height);
-    this.gl.uniform2f(this.backgroundResolutionUniformLocation, this.gl.canvas.width, this.gl.canvas.height);
-
-    this.gl.enableVertexAttribArray(this.backgroundPositionAttributeLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
-    this.gl.vertexAttribPointer(this.backgroundPositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-    
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-  }
 
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0); this.gl.clear(this.gl.COLOR_BUFFER_BIT);
