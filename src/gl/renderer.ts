@@ -70,7 +70,7 @@ export class Renderer {
     this.backgroundTextureUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_texture');
 
     this.gl.viewport(0, 0, canvas.width, canvas.height);
-    this.setupUnitSquare();
+    this.setupGeometry();
   }
   
 private compileShader(type: number, source: string): WebGLShader {
@@ -116,16 +116,26 @@ public async loadTexture(url: string): Promise<TextureObject> {
   }
           
           
- private setupUnitSquare() {
+  // FIX: Renamed function and added full-screen quad creation.
+  private setupGeometry() {
+    // Unit square for sprites
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
     this.unitSquarePositionBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
-   const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+
+    const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
     this.unitSquareTexCoordBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+
+    // Full screen quad for background
+    const fullScreenPositions = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+    this.fullScreenQuadBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fullScreenQuadBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, fullScreenPositions, this.gl.STATIC_DRAW);
   }
+
 
      
  private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
