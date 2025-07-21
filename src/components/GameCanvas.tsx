@@ -13,10 +13,19 @@ const BACKGROUND_URL = './background.png'; // NEW
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const keysRef = useRef<Record<string, boolean>>({ /* ... */ });
-
-  useEffect(() => { /* ... keyboard listeners ... */ }, []);
-
+  const keysRef = useRef<Record<string, boolean>>({
+    'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
+  });
+ useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
+    const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+   }, []);
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -29,7 +38,7 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
-        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexShader, backgroundFragmentShader);
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
 
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
