@@ -33,6 +33,7 @@ export class Renderer {
   
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
+  private fullScreenQuadBuffer: WebGLBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource: string) {
     const context = canvas.getContext('webgl2');
