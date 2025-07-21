@@ -17,13 +17,11 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .field("right", &InputState::right)
         .field("jump", &InputState::jump);
 
-    // Bind the AnimationState struct.
     emscripten::value_object<AnimationState>("AnimationState")
         .field("currentState", &AnimationState::currentState)
         .field("currentFrame", &AnimationState::currentFrame)
         .field("facingLeft", &AnimationState::facingLeft);
 
-    // Bind the full Game class.
     emscripten::class_<Game>("Game")
         .constructor<>()
         .function("update", &Game::update)
@@ -32,6 +30,6 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getCameraPosition", &Game::getCameraPosition)
         .function("getPlatforms", &Game::getPlatforms)
         .function("getPlayerAnimationState", &Game::getPlayerAnimationState)
-        // NEW: Expose the getPlayerSize function to JavaScript.
+        // FIX: This binding will now work correctly.
         .function("getPlayerSize", &Game::getPlayerSize);
 }
