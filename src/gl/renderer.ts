@@ -72,10 +72,49 @@ export class Renderer {
     this.setupGeometry();
   }
   
-  private compileShader(type: number, source: string): WebGLShader { /* ... */ return this.gl.createShader(type)!; }
-  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram { /* ... */ return this.gl.createProgram()!; }
-  public async loadTexture(url: string): Promise<TextureObject> { /* ... */ return { texture: this.gl.createTexture()!, width: 0, height: 0 }; }
 
+private compileShader(type: number, source: string): WebGLShader {
+    const shader = this.gl.createShader(type)!;
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      throw new Error(`Shader compile error: ${this.gl.getShaderInfoLog(shader)}`);
+    }
+    return shader;
+  }
+  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+      const program = this.gl.createProgram()!;
+      this.gl.attachShader(program, vertexShader);
+      this.gl.attachShader(program, fragmentShader);
+      this.gl.linkProgram(program);
+      if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+          throw new Error(`Program link error: ${this.gl.getProgramInfoLog(program)}`);
+      }
+      return program;
+  }
+public async loadTexture(url: string): Promise<TextureObject> {
+    const texture = this.gl.createTexture();
+    if (!texture) throw new Error('Could not create texture');
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.src = url;
+      image.onload = () => {
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+        
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+       resolve({ texture, width: image.width, height: image.height });
+      };
+      image.onerror = (err) => reject(`Failed to load texture from ${url}: ${err}`);
+    });
+  }
+          
   private setupGeometry() {
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
     this.unitSquarePositionBuffer = this.gl.createBuffer();
