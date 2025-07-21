@@ -16,14 +16,14 @@ void main() {
   // Start with the screen UVs
   vec2 uv = v_texCoord;
 
-  // Adjust UVs to prevent stretching and show the full height of the background
-  uv.x *= screenAspect / textureAspect;
-  // Center the scaled texture horizontally
-  uv.x += (1.0 - (screenAspect / textureAspect)) / 2.0;
+  // This calculation ensures the background image covers the screen vertically
+  // without being stretched, and it will be centered horizontally.
+  float uv_x_scale = screenAspect / textureAspect;
+  uv.x = uv.x * uv_x_scale - (uv_x_scale - 1.0) / 2.0;
 
-  // Apply parallax scrolling with an increased factor
-  float parallaxFactor = 0.4;
-  // Scale the scroll offset to be more noticeable
+  // Apply parallax scrolling with an increased factor for a more noticeable effect.
+  float parallaxFactor = 0.3;
+  // Scale the scroll offset to be more noticeable in our coordinate system.
   float scrollOffset = u_camera_position.x * parallaxFactor * 0.1;
   uv.x += scrollOffset;
   
