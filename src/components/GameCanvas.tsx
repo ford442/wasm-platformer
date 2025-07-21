@@ -57,7 +57,7 @@ const GameCanvas = () => {
 
             lastTime = performance.now();
             gameLoop(lastTime);
-        } catch (error) {
+        } catch (error) => {
             console.error("Failed to initialize game:", error);
         }
     };
@@ -117,3 +117,4 @@ const GameCanvas = () => {
 };
 
 export default GameCanvas;
+
