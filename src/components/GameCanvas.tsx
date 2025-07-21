@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Renderer } from '../gl/renderer';
+// FIX: Import TextureObject from the renderer file.
+import { Renderer, type TextureObject } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type PlatformList, type Vec2, type Platform, type AnimationState } from '../wasm/loader';
+
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
 const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
