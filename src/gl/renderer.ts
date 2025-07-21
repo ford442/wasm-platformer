@@ -128,16 +128,23 @@ public async loadTexture(url: string): Promise<TextureObject> {
   }
 
      
-     private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
+ private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
     this.gl.useProgram(this.backgroundProgram);
 
     this.gl.bindTexture(this.gl.TEXTURE_2D, backgroundTexture.texture);
     this.gl.uniform1i(this.backgroundTextureUniformLocation, 0);
-    // Pass necessary data to the background shader
+
     this.gl.uniform2f(this.backgroundCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.uniform2f(this.backgroundTextureSizeUniformLocation, backgroundTexture.width, backgroundTexture.height);
     this.gl.uniform2f(this.backgroundResolutionUniformLocation, this.gl.canvas.width, this.gl.canvas.height);
-         
+
+    this.gl.enableVertexAttribArray(this.backgroundPositionAttributeLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+    this.gl.vertexAttribPointer(this.backgroundPositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+    
   private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
