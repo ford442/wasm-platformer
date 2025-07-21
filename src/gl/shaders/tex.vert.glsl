@@ -8,13 +8,13 @@ uniform vec2 u_sprite_frame_size;
 uniform vec2 u_sprite_sheet_size;
 uniform vec2 u_sprite_frame_coord;
 uniform bool u_flip_horizontal;
-uniform mat4 u_projection; // <-- ADDED
+uniform mat4 u_projection;
 out vec2 v_texCoord;
 
 void main() {
   vec2 world_position = (a_position * u_model_size) + u_model_position;
   vec2 view_position = world_position - u_camera_position;
-  gl_Position = u_projection * vec4(view_position, 0.0, 1.0); // <-- USE IT HERE
+  gl_Position = u_projection * vec4(view_position, 0.0, 1.0);
   
   vec2 final_texCoord = a_texCoord;
   if (u_flip_horizontal) {
