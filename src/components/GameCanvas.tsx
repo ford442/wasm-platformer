@@ -10,17 +10,11 @@ const PLATFORM_TEXTURE_URL = './platform.png';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<Renderer | null>(null);
-  const gameInstanceRef = useRef<Game | null>(null);
-  const animationFrameId = useRef<number>(0);
   const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
 
-  const [playerTexture, setPlayerTexture] = useState<TextureObject | null>(null);
-  const [platformTexture, setPlatformTexture] = useState<TextureObject | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
+  // This useEffect handles keyboard input listeners.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
@@ -32,81 +26,78 @@ const GameCanvas = () => {
     };
    }, []);
 
+  // FIX: This single, robust useEffect handles the entire game lifecycle.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let lastTime = 0;
+    let animationFrameId = 0;
+    let gameInstance: Game | null = null;
     
-    const initialize = async () => {
-        try {
-            const wasmModule = await loadWasmModule();
-            const game = new wasmModule.Game();
-            gameInstanceRef.current = game;
-            
-            const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
-            rendererRef.current = renderer;
+    // This function sets up everything and starts the game loop.
+    const initializeAndRun = async () => {
+      try {
+        // --- One-time Initialization ---
+        const wasmModule = await loadWasmModule();
+        gameInstance = new wasmModule.Game();
+        
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource);
 
-            const [pTex, platTex] = await Promise.all([
-              renderer.loadTexture(WAZZY_SPRITESHEET_URL),
-              renderer.loadTexture(PLATFORM_TEXTURE_URL)
-            ]);
-            setPlayerTexture(pTex);
-            setPlatformTexture(platTex);
-            setIsLoading(false);
+        const [playerTexture, platformTexture] = await Promise.all([
+          renderer.loadTexture(WAZZY_SPRITESHEET_URL),
+          renderer.loadTexture(PLATFORM_TEXTURE_URL)
+        ]);
+        
+        // --- Game Loop ---
+        let lastTime = performance.now();
+        const gameLoop = (timestamp: number) => {
+          if (!gameInstance) return; // Exit if game has been cleaned up
 
-            lastTime = performance.now();
-            gameLoop(lastTime);
-        } catch (error) {
-            console.error("Failed to initialize game:", error);
-        }
-    };
+          const deltaTime = (timestamp - lastTime) / 1000.0;
+          lastTime = timestamp;
 
-    const gameLoop = (timestamp: number) => {
-      if (isLoading || !playerTexture || !platformTexture) {
-        animationFrameId.current = requestAnimationFrame(gameLoop);
-        return;
-      }
-      
-      const deltaTime = (timestamp - lastTime) / 1000.0;
-      lastTime = timestamp;
-
-      const renderer = rendererRef.current;
-      const gameInstance = gameInstanceRef.current;
-
-      if (renderer && gameInstance) {
-        const inputState: InputState = {
+          const inputState: InputState = {
             left: keysRef.current['ArrowLeft'],
             right: keysRef.current['ArrowRight'],
             jump: keysRef.current['Space'],
+          };
+          gameInstance.handleInput(inputState);
+          gameInstance.update(deltaTime);
+          
+          const playerPosition = gameInstance.getPlayerPosition();
+          const cameraPosition = gameInstance.getCameraPosition();
+          const wasmPlatforms = gameInstance.getPlatforms();
+          const playerAnim = gameInstance.getPlayerAnimationState();
+          const playerSize = gameInstance.getPlayerSize();
+          
+          const jsPlatforms: Platform[] = [];
+          for (let i = 0; i < wasmPlatforms.size(); i++) {
+            jsPlatforms.push(wasmPlatforms.get(i));
+          }
+          
+          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, playerAnim);
+
+          animationFrameId = requestAnimationFrame(gameLoop);
         };
-        gameInstance.handleInput(inputState);
-        gameInstance.update(deltaTime);
         
-        const playerPosition = gameInstance.getPlayerPosition();
-        const cameraPosition = gameInstance.getCameraPosition();
-        const wasmPlatforms = gameInstance.getPlatforms();
-        const playerAnim = gameInstance.getPlayerAnimationState();
-        const playerSize = gameInstance.getPlayerSize();
-        
-        const jsPlatforms: Platform[] = [];
-        for (let i = 0; i < wasmPlatforms.size(); i++) {
-          jsPlatforms.push(wasmPlatforms.get(i));
-        }
-        
-        renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, playerAnim);
+        // Start the loop only after everything is loaded.
+        animationFrameId = requestAnimationFrame(gameLoop);
+
+      } catch (error) {
+        console.error("Failed to initialize game:", error);
       }
-
-      animationFrameId.current = requestAnimationFrame(gameLoop);
     };
 
-    initialize();
+    initializeAndRun();
 
+    // Cleanup function that runs when the component unmounts.
     return () => {
-      cancelAnimationFrame(animationFrameId.current);
-      if (gameInstanceRef.current) gameInstanceRef.current.delete();
+      cancelAnimationFrame(animationFrameId);
+      if (gameInstance) {
+        gameInstance.delete();
+      }
     };
-  }, [isLoading, playerTexture, platformTexture]);
+  }, []); // The empty dependency array ensures this runs only once.
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
