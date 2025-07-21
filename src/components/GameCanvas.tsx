@@ -42,7 +42,7 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
-        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexShader, backgroundFragmentShader);
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
 
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
