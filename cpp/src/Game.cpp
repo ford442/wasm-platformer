@@ -99,11 +99,8 @@ void Game::update(float deltaTime) {
         animationTimer = 0.0f;
     }
 
-    // FIX: Use a while loop to handle the animation timer.
-    // This makes the animation speed independent of the frame rate,
-    // fixing the inconsistent speed bug.
     animationTimer += deltaTime;
-    float frameDuration = 0.1f; // How long each frame should be displayed
+    float frameDuration = 0.1f;
     while (animationTimer >= frameDuration) {
         animationTimer -= frameDuration;
         playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
@@ -122,6 +119,8 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 }
 
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
+// FIX: Re-added the getPlayerSize function definition.
+Vec2 Game::getPlayerSize() const { return playerSize; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
