@@ -13,23 +13,10 @@ const BACKGROUND_URL = './background.png'; // NEW
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const keysRef = useRef<Record<string, boolean>>({
-    'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
-  });
+  const keysRef = useRef<Record<string, boolean>>({ /* ... */ });
 
-  // This useEffect handles keyboard input listeners.
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = true; };
-    const handleKeyUp = (e: KeyboardEvent) => { if (e.code in keysRef.current) keysRef.current[e.code] = false; };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-   }, []);
+  useEffect(() => { /* ... keyboard listeners ... */ }, []);
 
-  // FIX: This single, robust useEffect handles the entire game lifecycle.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -42,12 +29,12 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
-        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
+        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexShader, backgroundFragmentShader);
 
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL),
-          renderer.loadTexture(BACKGROUND_URL) // Load the new texture
+          renderer.loadTexture(BACKGROUND_URL)
         ]);
         
         let lastTime = performance.now();
@@ -57,12 +44,7 @@ const GameCanvas = () => {
           const deltaTime = (timestamp - lastTime) / 1000.0;
           lastTime = timestamp;
 
- 
-          const inputState: InputState = {
-            left: keysRef.current['ArrowLeft'],
-            right: keysRef.current['ArrowRight'],
-            jump: keysRef.current['Space'],
-          };
+          const inputState: InputState = { /* ... */ };
           gameInstance.handleInput(inputState);
           gameInstance.update(deltaTime);
           
@@ -77,7 +59,6 @@ const GameCanvas = () => {
             jsPlatforms.push(wasmPlatforms.get(i));
           }
           
-          // Pass the new background texture to the renderer
           renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
 
           animationFrameId = requestAnimationFrame(gameLoop);
