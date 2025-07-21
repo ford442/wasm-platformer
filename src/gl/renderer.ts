@@ -106,12 +106,13 @@ export class Renderer {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
   }
 
-  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
+  // FIX: Corrected the function signature to accept all 7 arguments.
+  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.textureUniformLocation, 0);
     this.gl.uniform2f(this.modelPositionUniformLocation, position.x, position.y);
     this.gl.uniform2f(this.modelSizeUniformLocation, size.x, size.y);
-    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, textureObj.width, textureObj.height);
+    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
     this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
     this.gl.uniform1i(this.flipHorizontalUniformLocation, facingLeft ? 1 : 0);
@@ -175,3 +176,4 @@ export class Renderer {
     }
   }
 }
+
