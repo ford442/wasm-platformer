@@ -2,27 +2,35 @@
 #include <cmath>
 #include <algorithm>
 
-// --- Constructor ---
-// Initializes the game state. Note the tweaked playerSize and position
-// to make the collision box more accurately match the sprite.
 Game::Game() {
-    playerPosition = {0.0f, 0.0f};
+    playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {1.0f, 1.0f}; // Tighter collision box to reduce hovering
+    playerSize = {0.4f, 0.4f};
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
+    wasGrounded = false; // Initialize previous grounded state
     canJump = true;
+    soundCallback = emscripten::val::null(); // Initialize callback to null
 
-    // Platform layout
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
 }
 
-// --- Handle Input ---
-// Translates user input into player velocity.
+// New: Implementation for setting the callback from JS
+void Game::setSoundCallback(emscripten::val callback) {
+    soundCallback = callback;
+}
+
+// New: A helper to call the JavaScript function if it exists
+void Game::playSound(const std::string& soundName) {
+    if (!soundCallback.isNull()) {
+        soundCallback(soundName);
+    }
+}
+
 void Game::handleInput(const InputState& input) {
     if (input.left) {
         playerVelocity.x = -moveSpeed;
@@ -38,6 +46,7 @@ void Game::handleInput(const InputState& input) {
         playerVelocity.y = jumpStrength;
         isGrounded = false;
         canJump = false;
+        playSound("jump"); // Play jump sound on successful jump
     }
 
     if (!input.jump) {
@@ -45,12 +54,10 @@ void Game::handleInput(const InputState& input) {
     }
 }
 
-// --- Main Update Loop ---
-// This function contains the stable physics logic.
 void Game::update(float deltaTime) {
+    wasGrounded = isGrounded; // Store the state from the previous frame
+
     // 1. STABLE GROUND CHECK
-    // We check for ground in a thin box just below the player's feet.
-    // This is the most important step for stability.
     isGrounded = false;
     float groundCheckDistance = 0.05f;
     Vec2 groundCheckPos = {playerPosition.x, playerPosition.y - playerSize.y / 2.0f - groundCheckDistance};
@@ -63,17 +70,21 @@ void Game::update(float deltaTime) {
         }
     }
 
+    // Play landing sound when state changes from not-grounded to grounded
+    if (isGrounded && !wasGrounded) {
+        playSound("land");
+    }
+
     // 2. APPLY FORCES
-    // Only apply gravity if the ground check failed.
     if (!isGrounded) {
         playerVelocity.y += gravity * deltaTime;
     } else {
-        // If grounded, cancel any downward velocity to prevent building up speed.
         playerVelocity.y = std::max(0.0f, playerVelocity.y);
     }
     
+    // ... (The rest of the update function is the same)
+    
     // 3. Y-AXIS MOVEMENT AND COLLISION
-    // We handle vertical movement first to ensure the player lands correctly.
     playerPosition.y += playerVelocity.y * deltaTime;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -93,7 +104,6 @@ void Game::update(float deltaTime) {
     }
     
     // 4. X-AXIS MOVEMENT AND COLLISION
-    // Horizontal movement is handled second, after the player is vertically stable.
     playerPosition.x += playerVelocity.x * deltaTime;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -134,7 +144,7 @@ void Game::update(float deltaTime) {
     cameraPosition.x = playerPosition.x;
 }
 
-// --- Collision Check Utility ---
+
 bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
     bool collisionX = (posA.x - sizeA.x / 2.0f < posB.x + sizeB.x / 2.0f) &&
                       (posA.x + sizeA.x / 2.0f > posB.x - sizeB.x / 2.0f);
@@ -143,7 +153,6 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
     return collisionX && collisionY;
 }
 
-// --- Getters ---
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 Vec2 Game::getPlayerSize() const { return playerSize; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
