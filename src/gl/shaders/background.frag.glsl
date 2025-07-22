@@ -16,12 +16,15 @@ void main() {
 
   vec2 uv = v_texCoord;
 
+  // Scale the background to cover the screen without stretching
   float uv_x_scale = screenAspect / textureAspect;
   uv.x = uv.x * uv_x_scale - (uv_x_scale - 1.0) / 2.0;
 
   // Apply parallax scrolling
   float parallaxFactor = 0.4;
-  float scrollOffset = u_camera_position.x * parallaxFactor; // Removed * 0.1
+  // This offset is scaled down significantly to prevent the background from scrolling too fast.
+  // The world-space camera position is mapped to a much smaller texture-space offset.
+  float scrollOffset = u_camera_position.x * parallaxFactor * 0.05; 
   uv.x += scrollOffset;
   
   outColor = texture(u_texture, uv);
