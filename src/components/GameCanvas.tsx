@@ -12,6 +12,9 @@ const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
 const BACKGROUND_URL = './background.png';
 const MUSIC_URL = './background-music.mp3';
+// New: Sound effect URLs
+const JUMP_SFX_URL = './jump.wav';
+const LAND_SFX_URL = './land.wav';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,46 +22,36 @@ const GameCanvas = () => {
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
   
-  // --- Stable Audio Handling ---
-  // We create the Audio object once and store it in a ref.
-  // This prevents it from being recreated on every component render.
   const audioRef = useRef(new Audio(MUSIC_URL));
 
-  // --- Input Handling Effect ---
+  // New: Refs to hold our loaded sound effect audio objects
+  const jumpSfxRef = useRef<HTMLAudioElement | null>(null);
+  const landSfxRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
-    // This is now a stable reference to the single audio object.
     const audio = audioRef.current;
     audio.loop = true;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code in keysRef.current) {
-        keysRef.current[e.code] = true;
-      }
-      
-      // If the audio is currently paused, the first keydown will play it.
-      // This is the simplest, most reliable way to handle browser autoplay rules.
-      if (audio.paused) {
-        audio.play().catch(error => {
-          console.error("Audio playback failed:", error);
-        });
-      }
-    };
+    // New: Preload the sound effects when the component mounts
+    jumpSfxRef.current = new Audio(JUMP_SFX_URL);
+    landSfxRef.current = new Audio(LAND_SFX_URL);
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code in keysRef.current) keysRef.current[e.code] = true;
+      if (audio.paused) audio.play().catch(console.error);
+    };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code in keysRef.current) keysRef.current[e.code] = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-
-    // Cleanup: When the component unmounts, remove the event listeners.
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []); // The empty dependency array ensures this setup runs only once.
+  }, []);
 
-  // --- Game Initialization and Loop Effect ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -66,13 +59,30 @@ const GameCanvas = () => {
     let animationFrameId = 0;
     let gameInstance: Game | null = null;
     
+    // New: This function will be passed to C++
+    const handleSoundEvent = (soundName: string) => {
+      let soundToPlay: HTMLAudioElement | null = null;
+      if (soundName === 'jump') {
+        soundToPlay = jumpSfxRef.current;
+      } else if (soundName === 'land') {
+        soundToPlay = landSfxRef.current;
+      }
+
+      if (soundToPlay) {
+        soundToPlay.currentTime = 0; // Rewind to start
+        soundToPlay.play().catch(console.error);
+      }
+    };
+
     const initializeAndRun = async () => {
       try {
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
+        // New: Pass the sound handler function to the C++ game instance
+        gameInstance.setSoundCallback(handleSoundEvent);
+        
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
-
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
           renderer.loadTexture(PLATFORM_TEXTURE_URL),
@@ -112,12 +122,9 @@ const GameCanvas = () => {
     };
 
     initializeAndRun();
-
-    // Cleanup: When the component unmounts, stop everything.
     return () => {
       cancelAnimationFrame(animationFrameId);
       if (gameInstance) gameInstance.delete();
-      // Also pause the audio.
       audioRef.current.pause();
     };
   }, []);
