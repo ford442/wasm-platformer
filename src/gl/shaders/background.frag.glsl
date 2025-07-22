@@ -1,6 +1,8 @@
 #version 300 es
 precision highp float;
+
 in vec2 v_texCoord;
+
 uniform sampler2D u_texture;
 uniform vec2 u_camera_position;
 uniform vec2 u_resolution;
@@ -14,14 +16,12 @@ void main() {
 
   vec2 uv = v_texCoord;
 
-  // This calculation ensures the background image covers the screen vertically
-  // without being stretched, and it will be centered horizontally.
   float uv_x_scale = screenAspect / textureAspect;
   uv.x = uv.x * uv_x_scale - (uv_x_scale - 1.0) / 2.0;
 
-  // Apply parallax scrolling with an increased factor for a more noticeable effect.
+  // Apply parallax scrolling
   float parallaxFactor = 0.4;
-  float scrollOffset = u_camera_position.x * parallaxFactor * 0.1;
+  float scrollOffset = u_camera_position.x * parallaxFactor; // Removed * 0.1
   uv.x += scrollOffset;
   
   outColor = texture(u_texture, uv);
