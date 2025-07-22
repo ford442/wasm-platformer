@@ -8,9 +8,9 @@ export type TextureObject = {
 
 // Defines the animation frames for the player character
 const animationMap = {
-  idle: { row: 0, frames: 2, frameSize: { x: 48, y: 48 } },
-  run: { row: 1, frames: 4, frameSize: { x: 48, y: 48 } },
-  jump: { row: 2, frames: 1, frameSize: { x: 48, y: 48 } },
+  idle: { row: 0, frames: 2, frameSize: { x: 64, y: 64 } },
+  run: { row: 1, frames: 4, frameSize: { x: 64, y: 64 } },
+  jump: { row: 2, frames: 1, frameSize: { x: 64, y: 64 } },
 };
 
 export class Renderer {
