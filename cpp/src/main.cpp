@@ -30,6 +30,7 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getCameraPosition", &Game::getCameraPosition)
         .function("getPlatforms", &Game::getPlatforms)
         .function("getPlayerAnimationState", &Game::getPlayerAnimationState)
-        // FIX: This binding will now work correctly.
-        .function("getPlayerSize", &Game::getPlayerSize);
+        .function("getPlayerSize", &Game::getPlayerSize)
+        // New: Expose the callback setter to JavaScript
+        .function("setSoundCallback", &Game::setSoundCallback);
 }
