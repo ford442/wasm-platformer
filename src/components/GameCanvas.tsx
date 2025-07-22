@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react';
-import { Renderer, type TextureObject } from '../gl/renderer';
+import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type Platform } from '../wasm/loader';
 
-// Import shader and asset URLs
+// Import assets and shaders
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
 import backgroundFragmentSource from '../gl/shaders/background.frag.glsl?raw';
@@ -11,7 +11,6 @@ import backgroundVertexSource from '../gl/shaders/background.vert.glsl?raw';
 const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
 const BACKGROUND_URL = './background.png';
-// New: Define the path to your music file
 const MUSIC_URL = './background-music.mp3';
 
 const GameCanvas = () => {
@@ -20,43 +19,44 @@ const GameCanvas = () => {
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
   });
   
-  // New: Refs to manage the audio element and its playback state
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const musicStartedRef = useRef(false);
+  // --- Stable Audio Handling ---
+  // We create the Audio object once and store it in a ref.
+  // This prevents it from being recreated on every component render.
+  const audioRef = useRef(new Audio(MUSIC_URL));
 
   // --- Input Handling Effect ---
   useEffect(() => {
-    // This function now handles starting the music on the first keydown event.
+    // This is now a stable reference to the single audio object.
+    const audio = audioRef.current;
+    audio.loop = true;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code in keysRef.current) {
         keysRef.current[e.code] = true;
       }
       
-      // On the first user key press, play the music.
-      // Browsers require user interaction to start audio.
-      if (audioRef.current && !musicStartedRef.current) {
-        audioRef.current.play().catch(error => {
-          // Log any errors, e.g., if the browser blocks playback.
+      // If the audio is currently paused, the first keydown will play it.
+      // This is the simplest, most reliable way to handle browser autoplay rules.
+      if (audio.paused) {
+        audio.play().catch(error => {
           console.error("Audio playback failed:", error);
         });
-        musicStartedRef.current = true;
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code in keysRef.current) {
-        keysRef.current[e.code] = false;
-      }
+      if (e.code in keysRef.current) keysRef.current[e.code] = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
+    // Cleanup: When the component unmounts, remove the event listeners.
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []); // Note: The dependency array is empty, this runs once.
+  }, []); // The empty dependency array ensures this setup runs only once.
 
   // --- Game Initialization and Loop Effect ---
   useEffect(() => {
@@ -66,11 +66,6 @@ const GameCanvas = () => {
     let animationFrameId = 0;
     let gameInstance: Game | null = null;
     
-    // New: Create and configure the Audio object when the component mounts.
-    // We store it in a ref to access it in the keydown handler.
-    audioRef.current = new Audio(MUSIC_URL);
-    audioRef.current.loop = true; // Make the music loop continuously.
-
     const initializeAndRun = async () => {
       try {
         const wasmModule = await loadWasmModule();
@@ -87,10 +82,8 @@ const GameCanvas = () => {
         let lastTime = performance.now();
         const gameLoop = (timestamp: number) => {
           if (!gameInstance) return;
-
           const deltaTime = (timestamp - lastTime) / 1000.0;
           lastTime = timestamp;
-
           const inputState: InputState = {
             left: keysRef.current['ArrowLeft'],
             right: keysRef.current['ArrowRight'],
@@ -98,20 +91,16 @@ const GameCanvas = () => {
           };
           gameInstance.handleInput(inputState);
           gameInstance.update(deltaTime);
-          
           const playerPosition = gameInstance.getPlayerPosition();
           const cameraPosition = gameInstance.getCameraPosition();
           const wasmPlatforms = gameInstance.getPlatforms();
           const playerAnim = gameInstance.getPlayerAnimationState();
           const playerSize = gameInstance.getPlayerSize();
-          
           const jsPlatforms: Platform[] = [];
           for (let i = 0; i < wasmPlatforms.size(); i++) {
             jsPlatforms.push(wasmPlatforms.get(i));
           }
-          
           renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
-
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         
@@ -124,20 +113,14 @@ const GameCanvas = () => {
 
     initializeAndRun();
 
-    // Cleanup function when the component unmounts
+    // Cleanup: When the component unmounts, stop everything.
     return () => {
       cancelAnimationFrame(animationFrameId);
-      if (gameInstance) {
-        gameInstance.delete();
-      }
-      // New: Stop and clean up the audio to prevent memory leaks.
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
+      if (gameInstance) gameInstance.delete();
+      // Also pause the audio.
+      audioRef.current.pause();
     };
-  }, []); 
+  }, []);
 
   const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
