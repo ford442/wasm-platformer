@@ -6,9 +6,9 @@
 // Initializes the game state. Note the tweaked playerSize and position
 // to make the collision box more accurately match the sprite.
 Game::Game() {
-    playerPosition = {0.0f, 0.75f};
+    playerPosition = {0.0f, 0.0f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.4f, 0.4f}; // Tighter collision box to reduce hovering
+    playerSize = {1.0f, 1.0f}; // Tighter collision box to reduce hovering
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
