@@ -5,7 +5,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.5f, 0.5f}; // Adjusted for better visibility
+    playerSize = {0.5f, 0.5f};
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
 
@@ -40,14 +40,19 @@ void Game::handleInput(const InputState& input) {
 
 void Game::update(float deltaTime) {
     // --- Apply Forces ---
+    // Use the grounded state from the *previous frame* to decide whether to apply gravity.
+    // This prevents the player from immediately falling after being placed on the ground.
     if (!isGrounded) {
         playerVelocity.y += gravity * deltaTime;
     }
+
+    // --- Update Position ---
     playerPosition.x += playerVelocity.x * deltaTime;
     playerPosition.y += playerVelocity.y * deltaTime;
 
     // --- Collision Resolution ---
-    isGrounded = false;
+    // A temporary flag to determine if the player is on the ground in *this* frame.
+    bool landedThisFrame = false;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
             float playerHalfX = playerSize.x / 2.0f;
@@ -61,20 +66,24 @@ void Game::update(float deltaTime) {
             float deltaY = playerPosition.y - platform.position.y;
             float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
 
+            // Check if vertical collision is the primary one
             if (penetrationY < penetrationX) {
-                if (deltaY > 0) {
+                // Player is coming from above
+                if (deltaY > 0) { 
                     playerPosition.y += penetrationY;
+                    // Stop downward movement upon landing
                     if (playerVelocity.y < 0) {
                         playerVelocity.y = 0;
                     }
-                    isGrounded = true;
-                } else {
+                    // Mark that we have landed
+                    landedThisFrame = true;
+                } else { // Player is hitting from below
                     playerPosition.y -= penetrationY;
                     if (playerVelocity.y > 0) {
                         playerVelocity.y = 0;
                     }
                 }
-            } else {
+            } else { // Horizontal collision
                 if (deltaX > 0) {
                     playerPosition.x += penetrationX;
                 } else {
@@ -84,12 +93,14 @@ void Game::update(float deltaTime) {
             }
         }
     }
+    // Update the official grounded state for the next frame.
+    isGrounded = landedThisFrame;
     
     // --- Animation Logic ---
     std::string newState = "idle";
     if (!isGrounded) {
         newState = "jump";
-    } else if (playerVelocity.x != 0) {
+    } else if (std::abs(playerVelocity.x) > 0.01f) { // Use a small tolerance for running
         newState = "run";
     }
 
@@ -109,6 +120,7 @@ void Game::update(float deltaTime) {
     // --- Update Camera ---
     cameraPosition.x = playerPosition.x;
 }
+
 
 bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
     bool collisionX = (posA.x - sizeA.x / 2.0f < posB.x + sizeB.x / 2.0f) &&
