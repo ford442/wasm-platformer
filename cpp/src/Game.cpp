@@ -5,7 +5,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.3f, 0.3f};
+    playerSize = {0.5f, 0.5f}; // Adjusted for better visibility
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
 
@@ -119,7 +119,6 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 }
 
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
-// FIX: Re-added the getPlayerSize function definition.
 Vec2 Game::getPlayerSize() const { return playerSize; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
