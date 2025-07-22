@@ -9,11 +9,9 @@ uniform vec2 u_texture_size;
 out vec4 outColor;
 
 void main() {
-  // Calculate aspect ratios
   float screenAspect = u_resolution.x / u_resolution.y;
   float textureAspect = u_texture_size.x / u_texture_size.y;
 
-  // Start with the screen UVs
   vec2 uv = v_texCoord;
 
   // This calculation ensures the background image covers the screen vertically
@@ -22,8 +20,7 @@ void main() {
   uv.x = uv.x * uv_x_scale - (uv_x_scale - 1.0) / 2.0;
 
   // Apply parallax scrolling with an increased factor for a more noticeable effect.
-  float parallaxFactor = 0.3;
-  // Scale the scroll offset to be more noticeable in our coordinate system.
+  float parallaxFactor = 0.4;
   float scrollOffset = u_camera_position.x * parallaxFactor * 0.1;
   uv.x += scrollOffset;
   
