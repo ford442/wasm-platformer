@@ -5,10 +5,11 @@
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.5f, 0.5f};
+    // Tweak: Make the collision box height smaller to match the sprite better.
+    playerSize = {0.5f, 0.43f}; 
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
-    isGrounded = false; // Start in the air
+    isGrounded = false;
     canJump = true;
 
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
@@ -40,11 +41,9 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- 1. Perform a Stable Ground Check ---
-    // This is the key to stability. We check for ground slightly below the player
-    // *before* any movement to determine the state.
     bool onGroundThisFrame = false;
-    float groundCheckTolerance = 0.05f;
+    // Tweak: Use a smaller tolerance for the ground check to reduce hovering.
+    float groundCheckTolerance = 0.01f; 
     Vec2 groundCheckPos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f - groundCheckTolerance / 2.0f };
     Vec2 groundCheckSize = { playerSize.x * 0.9f, groundCheckTolerance };
 
@@ -56,16 +55,12 @@ void Game::update(float deltaTime) {
     }
     isGrounded = onGroundThisFrame;
 
-    // --- 2. Apply Forces ---
-    // Only apply gravity if our stable check says we are in the air.
     if (!isGrounded) {
         playerVelocity.y += gravity * deltaTime;
     } else if (playerVelocity.y < 0) {
-        // If we are grounded, make sure we are not moving down.
         playerVelocity.y = 0;
     }
 
-    // --- 3. Resolve Movement and Collisions (Y-Axis) ---
     playerPosition.y += playerVelocity.y * deltaTime;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -74,17 +69,16 @@ void Game::update(float deltaTime) {
             float deltaY = playerPosition.y - platform.position.y;
             float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
 
-            if (deltaY > 0) { // Landing from above
+            if (deltaY > 0) {
                 playerPosition.y += penetrationY;
                 if (playerVelocity.y < 0) playerVelocity.y = 0;
-            } else { // Hitting head from below
+            } else {
                 playerPosition.y -= penetrationY;
                 if (playerVelocity.y > 0) playerVelocity.y = 0;
             }
         }
     }
     
-    // --- 4. Resolve Movement and Collisions (X-Axis) ---
     playerPosition.x += playerVelocity.x * deltaTime;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -100,7 +94,6 @@ void Game::update(float deltaTime) {
         }
     }
     
-    // --- 5. Animation Logic ---
     std::string newState = "idle";
     if (!isGrounded) {
         newState = "jump";
@@ -121,7 +114,6 @@ void Game::update(float deltaTime) {
         playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
     }
 
-    // --- 6. Update Camera ---
     cameraPosition.x = playerPosition.x;
 }
 
