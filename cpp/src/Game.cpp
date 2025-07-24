@@ -1,27 +1,43 @@
 #include "Game.hpp"
 #include <cmath>
+#include <algorithm>
 
 Game::Game() {
     playerPosition = {0.0f, 0.5f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.2f, 0.2f};
+    playerSize = {0.4f, 0.4f};
     cameraPosition = {0.0f, 0.0f};
+    playerAnimation = {"idle", 0, false};
+    isGrounded = false;
+    wasGrounded = false; // Initialize previous grounded state
+    canJump = true;
+    soundCallback = emscripten::val::null(); // Initialize callback to null
 
-    // The wide, side-scrolling level layout
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
-    platforms.push_back({ {8.0f, 0.0f},  {0.5f, 0.2f} });
-    platforms.push_back({ {6.0f, 0.6f},  {1.0f, 0.2f} });
-    platforms.push_back({ {3.0f, 0.4f},  {1.0f, 0.2f} });
+}
+
+// New: Implementation for setting the callback from JS
+void Game::setSoundCallback(emscripten::val callback) {
+    soundCallback = callback;
+}
+
+// New: A helper to call the JavaScript function if it exists
+void Game::playSound(const std::string& soundName) {
+    if (!soundCallback.isNull()) {
+        soundCallback(soundName);
+    }
 }
 
 void Game::handleInput(const InputState& input) {
     if (input.left) {
         playerVelocity.x = -moveSpeed;
+        playerAnimation.facingLeft = true;
     } else if (input.right) {
         playerVelocity.x = moveSpeed;
+        playerAnimation.facingLeft = false;
     } else {
         playerVelocity.x = 0;
     }
@@ -30,6 +46,7 @@ void Game::handleInput(const InputState& input) {
         playerVelocity.y = jumpStrength;
         isGrounded = false;
         canJump = false;
+        playSound("jump"); // Play jump sound on successful jump
     }
 
     if (!input.jump) {
@@ -38,53 +55,96 @@ void Game::handleInput(const InputState& input) {
 }
 
 void Game::update(float deltaTime) {
-    // --- Vertical Movement and Physics ---
-    // Only apply gravity if the player is in the air.
-    if (!isGrounded) {
-        playerVelocity.y += gravity * deltaTime;
-    }
-    // Update vertical position based on velocity.
-    playerPosition.y += playerVelocity.y * deltaTime;
+    wasGrounded = isGrounded; // Store the state from the previous frame
 
-    // --- Collision Resolution ---
-    // Assume we are in the air until a collision proves otherwise.
+    // 1. STABLE GROUND CHECK
     isGrounded = false;
-    for (const auto& platform : platforms) {
-        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
-            // We only resolve collisions if the player is moving downwards.
-            // This prevents the player from getting stuck in the ceiling of a platform.
-            if (playerVelocity.y <= 0) {
-                float playerBottom = playerPosition.y - playerSize.y / 2.0f;
-                float platformTop = platform.position.y + platform.size.y / 2.0f;
+    float groundCheckDistance = 0.05f;
+    Vec2 groundCheckPos = {playerPosition.x, playerPosition.y - playerSize.y / 2.0f - groundCheckDistance};
+    Vec2 groundCheckSize = {playerSize.x * 0.9f, 0.1f };
 
-                // We only resolve the collision if the player is actually intersecting from above.
-                if (playerBottom < platformTop) {
-                    // Calculate how far the player has sunk into the platform.
-                    float penetration = platformTop - playerBottom;
-                    // Correct the player's position by moving them up by exactly that amount.
-                    playerPosition.y += penetration;
-                    
-                    // Stop all vertical movement.
-                    playerVelocity.y = 0;
-                    isGrounded = true;
-                    // We've landed on a platform, so we can stop checking for this frame.
-                    break; 
-                }
-            }
+    for (const auto& platform : platforms) {
+        if (checkCollision(groundCheckPos, groundCheckSize, platform.position, platform.size)) {
+            isGrounded = true;
+            break;
         }
     }
 
-    // --- Horizontal Movement ---
-    // Apply horizontal movement *after* all vertical physics and collisions are resolved.
-    playerPosition.x += playerVelocity.x * deltaTime;
-    // (In a full game, we would check for wall collisions here)
+    // Play landing sound when state changes from not-grounded to grounded
+    if (isGrounded && !wasGrounded) {
+        playSound("land");
+    }
+
+    // 2. APPLY FORCES
+    if (!isGrounded) {
+        playerVelocity.y += gravity * deltaTime;
+    } else {
+        playerVelocity.y = std::max(0.0f, playerVelocity.y);
+    }
     
-    // --- Update Camera ---
-    // The camera's position is updated last, based on the final, stable player position.
+    // ... (The rest of the update function is the same)
+    
+    // 3. Y-AXIS MOVEMENT AND COLLISION
+    playerPosition.y += playerVelocity.y * deltaTime;
+    for (const auto& platform : platforms) {
+        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
+            float playerHalfY = playerSize.y / 2.0f;
+            float platformHalfY = platform.size.y / 2.0f;
+            float deltaY = playerPosition.y - platform.position.y;
+            float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
+
+            if (deltaY > 0) { // Landing on top of a platform
+                playerPosition.y += penetrationY;
+                if (playerVelocity.y < 0) playerVelocity.y = 0;
+            } else { // Hitting a platform from below
+                playerPosition.y -= penetrationY;
+                if (playerVelocity.y > 0) playerVelocity.y = 0;
+            }
+        }
+    }
+    
+    // 4. X-AXIS MOVEMENT AND COLLISION
+    playerPosition.x += playerVelocity.x * deltaTime;
+    for (const auto& platform : platforms) {
+        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
+            float playerHalfX = playerSize.x / 2.0f;
+            float platformHalfX = platform.size.x / 2.0f;
+            float deltaX = playerPosition.x - platform.position.x;
+            float penetrationX = (playerHalfX + platformHalfX) - std::abs(deltaX);
+            
+            if (deltaX > 0) playerPosition.x += penetrationX;
+            else playerPosition.x -= penetrationX;
+            
+            playerVelocity.x = 0;
+        }
+    }
+    
+    // 5. ANIMATION
+    std::string newState = "idle";
+    if (!isGrounded) {
+        newState = "jump";
+    } else if (std::abs(playerVelocity.x) > 0.01f) {
+        newState = "run";
+    }
+
+    if (newState != playerAnimation.currentState) {
+        playerAnimation.currentState = newState;
+        playerAnimation.currentFrame = 0;
+        animationTimer = 0.0f;
+    }
+
+    animationTimer += deltaTime;
+    float frameDuration = 0.1f;
+    while (animationTimer >= frameDuration) {
+        animationTimer -= frameDuration;
+        playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
+    }
+
+    // 6. CAMERA
     cameraPosition.x = playerPosition.x;
 }
 
-// AABB collision check
+
 bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
     bool collisionX = (posA.x - sizeA.x / 2.0f < posB.x + sizeB.x / 2.0f) &&
                       (posA.x + sizeA.x / 2.0f > posB.x - sizeB.x / 2.0f);
@@ -94,5 +154,7 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
 }
 
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
+Vec2 Game::getPlayerSize() const { return playerSize; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
+AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
