@@ -19,7 +19,7 @@ const LAND_SFX_URL = './land.mp3';
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysRef = useRef<Record<string, boolean>>({
-    'kbd_a': false, 'kbd_d': false, 'Space': false,
+    'KeyA': false, 'KeyD': false, 'Space': false,
   });
   
   const audioRef = useRef(new Audio(MUSIC_URL));
