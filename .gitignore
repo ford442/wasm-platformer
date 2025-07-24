@@ -33,3 +33,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Emscripten build artifacts
+src/wasm/main.js
+src/wasm/main.wasm
