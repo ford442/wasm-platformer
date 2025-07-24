@@ -12,7 +12,7 @@ const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
 const BACKGROUND_URL = './background.png';
 const MUSIC_URL = './background-music.mp3';
-// New: Sound effect URLs
+// Sound effect URLs
 const JUMP_SFX_URL = './jump.mp3';
 const LAND_SFX_URL = './land.mp3';
 
@@ -24,17 +24,12 @@ const GameCanvas = () => {
   
   const audioRef = useRef(new Audio(MUSIC_URL));
 
-  // New: Refs to hold our loaded sound effect audio objects
-  const jumpSfxRef = useRef<HTMLAudioElement | null>(null);
-  const landSfxRef = useRef<HTMLAudioElement | null>(null);
+  // We no longer need to preload the sound effects into refs.
+  // They will be created on the fly.
 
   useEffect(() => {
     const audio = audioRef.current;
     audio.loop = true;
-
-    // New: Preload the sound effects when the component mounts
-    jumpSfxRef.current = new Audio(JUMP_SFX_URL);
-    landSfxRef.current = new Audio(LAND_SFX_URL);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code in keysRef.current) keysRef.current[e.code] = true;
@@ -59,18 +54,20 @@ const GameCanvas = () => {
     let animationFrameId = 0;
     let gameInstance: Game | null = null;
     
-    // New: This function will be passed to C++
+    // This function now creates a new Audio object each time it's called.
     const handleSoundEvent = (soundName: string) => {
-      let soundToPlay: HTMLAudioElement | null = null;
+      let sfxUrl: string | null = null;
       if (soundName === 'jump') {
-        soundToPlay = jumpSfxRef.current;
+        sfxUrl = JUMP_SFX_URL;
       } else if (soundName === 'land') {
-        soundToPlay = landSfxRef.current;
+        sfxUrl = LAND_SFX_URL;
       }
 
-      if (soundToPlay) {
-        soundToPlay.currentTime = 0; // Rewind to start
-        soundToPlay.play().catch(console.error);
+      if (sfxUrl) {
+        // Create a new audio player for this specific sound instance.
+        const sfx = new Audio(sfxUrl);
+        // Play it and let it be garbage-collected when it's done.
+        sfx.play().catch(console.error);
       }
     };
 
@@ -79,7 +76,6 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         
-        // New: Pass the sound handler function to the C++ game instance
         gameInstance.setSoundCallback(handleSoundEvent);
         
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
