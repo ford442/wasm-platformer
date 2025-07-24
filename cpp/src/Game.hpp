@@ -2,53 +2,47 @@
 #define GAME_HPP
 
 #include <vector>
-#include <string>
-#include <emscripten/val.h> // Required for emscripten::val
 
-struct Vec2 { float x; float y; };
-struct Platform { Vec2 position; Vec2 size; };
-struct InputState { bool left; bool right; bool jump; };
-struct AnimationState {
-    std::string currentState;
+struct Rectangle {
+    float x, y, width, height;
+};
+
+struct Player {
+    Rectangle rect;
+    float velocityX, velocityY;
+    bool onGround;
+    // Animation state
+    float frameTimer;
     int currentFrame;
-    bool facingLeft;
+    int facingDirection; // 0 for right, 1 for left
+};
+
+// NEW: A simple struct to represent enemies
+struct Enemy {
+    Rectangle rect;
+    float velocityX;
+    bool isDefeated;
+    int facingDirection;
+    // Add any other properties enemies might need
 };
 
 class Game {
 public:
     Game();
-    void update(float deltaTime);
-    void handleInput(const InputState& input);
-    
-    // New: A function to allow JavaScript to set a callback
-    void setSoundCallback(emscripten::val callback);
-
-    Vec2 getPlayerPosition() const;
-    Vec2 getPlayerSize() const;
-    Vec2 getCameraPosition() const;
-    const std::vector<Platform>& getPlatforms() const;
-    AnimationState getPlayerAnimationState() const;
+    void update(bool left, bool right, bool jump);
+    const std::vector<float>& getRenderData();
+    const std::vector<float>& getBackgroundData();
+    const std::vector<float>& getSoundData();
 
 private:
-    void playSound(const std::string& soundName);
-    bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
-
-    Vec2 playerPosition;
-    Vec2 playerVelocity;
-    Vec2 playerSize;
-    Vec2 cameraPosition;
-    AnimationState playerAnimation;
-    float animationTimer = 0.0f;
-    std::vector<Platform> platforms;
-    const float gravity = -9.8f * 2.5f;
-    const float moveSpeed = 2.0f;
-    const float jumpStrength = 6.0f;
-    bool isGrounded = false;
-    bool wasGrounded = false; // New: To track state changes for landing sound
-    bool canJump = true;
-    
-    // New: Stores the JavaScript callback function
-    emscripten::val soundCallback;
+    Player player;
+    std::vector<Rectangle> platforms;
+    std::vector<Enemy> enemies; // NEW: A vector to hold all enemies
+    Rectangle camera;
+    std::vector<float> renderData;
+    std::vector<float> backgroundData;
+    std::vector<float> soundData;
+    void generateBackground();
 };
 
 #endif // GAME_HPP
