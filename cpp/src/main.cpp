@@ -1,36 +1,29 @@
-#include "Game.hpp"
 #include <emscripten/bind.h>
+#include "Game.hpp"
 
-EMSCRIPTEN_BINDINGS(WASM_Venture) {
-    emscripten::value_object<Vec2>("Vec2")
-        .field("x", &Vec2::x)
-        .field("y", &Vec2::y);
-        
-    emscripten::value_object<Platform>("Platform")
-        .field("position", &Platform::position)
-        .field("size", &Platform::size);
+EMSCRIPTEN_BINDINGS(my_module) {
+    // This tells Emscripten how to handle a vector of floats,
+    // which is what our render data functions return.
+    emscripten::register_vector<float>("FloatList");
 
-    emscripten::register_vector<Platform>("PlatformList");
-
-    emscripten::value_object<InputState>("InputState")
-        .field("left", &InputState::left)
-        .field("right", &InputState::right)
-        .field("jump", &InputState::jump);
-
-    emscripten::value_object<AnimationState>("AnimationState")
-        .field("currentState", &AnimationState::currentState)
-        .field("currentFrame", &AnimationState::currentFrame)
-        .field("facingLeft", &AnimationState::facingLeft);
-
+    // This exposes our main Game class to JavaScript.
     emscripten::class_<Game>("Game")
-        .constructor<>()
-        .function("update", &Game::update)
-        .function("handleInput", &Game::handleInput)
-        .function("getPlayerPosition", &Game::getPlayerPosition)
-        .function("getCameraPosition", &Game::getCameraPosition)
-        .function("getPlatforms", &Game::getPlatforms)
-        .function("getPlayerAnimationState", &Game::getPlayerAnimationState)
-        .function("getPlayerSize", &Game::getPlayerSize)
-        // New: Expose the callback setter to JavaScript
-        .function("setSoundCallback", &Game::setSoundCallback);
+        // Expose the constructor so we can create a new Game object in JS
+        .constructor<>() 
+        
+        // Expose the 'update' function
+        // JS call: game.update(left, right, jump);
+        .function("update", &Game::update) 
+
+        // Expose the function to get all renderable object data
+        // JS call: const data = game.getRenderData();
+        .function("getRenderData", &Game::getRenderData) 
+
+        // Expose the function to get background data
+        // JS call: const bgData = game.getBackgroundData();
+        .function("getBackgroundData", &Game::getBackgroundData)
+
+        // Expose the function to get sound effect triggers
+        // JS call: const soundData = game.getSoundData();
+        .function("getSoundData", &Game::getSoundData);
 }
