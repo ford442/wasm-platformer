@@ -1,42 +1,43 @@
-
-
 import React, { useRef, useEffect, useState } from 'react';
-import { WasmModule } from '../wasm/loader';
+import { GameModule } from '../wasm/loader'; // Corrected import name
 import { Renderer } from '../gl/renderer';
 
 const GameCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const wasmModule = useRef<WasmModule | null>(null);
+    const wasmModule = useRef<GameModule | null>(null);
     const renderer = useRef<Renderer | null>(null);
-    const game = useRef<any>(null); // Using 'any' for the Emscripten game object
+    const game = useRef<any>(null);
     const keys = useRef<{ [key: string]: boolean }>({});
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Load sounds
     const jumpSound = useRef(new Audio('jump.mp3'));
-    const landSound = useRef(new Audio('land.mp3'));
 
     useEffect(() => {
         const init = async () => {
             try {
-                const module = new WasmModule();
-                await module.load();
-                wasmModule.current = module;
+                // Fetch shaders and wasm module in parallel
+                const [spriteVs, spriteFs, bgVs, bgFs, module] = await Promise.all([
+                    fetch('shaders/sprite.vs').then(res => res.text()),
+                    fetch('shaders/sprite.fs').then(res => res.text()),
+                    fetch('shaders/background.vs').then(res => res.text()),
+                    fetch('shaders/background.fs').then(res => res.text()),
+                    new GameModule().load()
+                ]);
 
+                wasmModule.current = module;
                 game.current = new module.instance.Game();
 
                 if (canvasRef.current) {
-                    const gl = canvasRef.current.getContext('webgl2');
-                    if (gl) {
-                        renderer.current = new Renderer(gl);
-                        await renderer.current.init();
-                    }
+                    renderer.current = new Renderer(canvasRef.current, spriteVs, spriteFs, bgVs, bgFs);
+                    await renderer.current.init(); // Correctly call the new init method
                 }
                 
                 setIsLoading(false);
 
-            } catch (error) {
-                console.error("Failed to initialize game:", error);
+            } catch (err) {
+                console.error("Failed to initialize game:", err);
+                setError(err instanceof Error ? err.message : String(err));
             }
         };
 
@@ -68,37 +69,38 @@ const GameCanvas: React.FC = () => {
             
             game.current.update(left, right, jump);
             
-            const renderData = game.current.getRenderData();
-            const backgroundData = game.current.getBackgroundData();
-            renderer.current.render(renderData, backgroundData);
+            const renderDataPtr = game.current.getRenderData();
+            const backgroundDataPtr = game.current.getBackgroundData();
+            const soundDataPtr = game.current.getSoundData();
 
-            // --- CORRECTED SOUND LOGIC ---
-            // Get sound data from C++
-            const soundData = game.current.getSoundData();
-            
-            // The vector is reused, so we need to get a copy to iterate safely
-            const soundsToPlay = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, soundData.data(), soundData.size());
+            // Create typed arrays from the pointers
+            const spriteData = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, renderDataPtr.data(), renderDataPtr.size() * 8);
+            const backgroundData = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, backgroundDataPtr.data(), backgroundDataPtr.size() * 4);
+            const soundsToPlay = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, soundDataPtr.data(), soundDataPtr.size());
+
+            // Correctly call the draw method
+            renderer.current.draw(spriteData, backgroundData);
 
             soundsToPlay.forEach((soundId: number) => {
-                if (soundId === 1) { // 1 is the ID for the jump sound
+                if (soundId === 1) {
                     jumpSound.current.currentTime = 0;
-                    jumpSound.current.play();
+                    jumpSound.current.play().catch(e => console.log("Audio play failed:", e));
                 }
-                // You could add else if (soundId === 2) for another sound, etc.
             });
 
             animationFrameId = requestAnimationFrame(gameLoop);
         };
 
-        if (!isLoading) {
+        if (!isLoading && !error) {
             gameLoop();
         }
 
         return () => {
             cancelAnimationFrame(animationFrameId);
         };
-    }, [isLoading]);
+    }, [isLoading, error]);
 
+    if (error) return <p style={{ color: 'red' }}>Error: {error}</p>;
     return (
         <div>
             {isLoading ? <p>Loading...</p> : <canvas ref={canvasRef} width={800} height={600} />}
