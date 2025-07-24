@@ -13,8 +13,8 @@ const PLATFORM_TEXTURE_URL = './platform.png';
 const BACKGROUND_URL = './background.png';
 const MUSIC_URL = './background-music.mp3';
 // New: Sound effect URLs
-const JUMP_SFX_URL = './jump.wav';
-const LAND_SFX_URL = './land.wav';
+const JUMP_SFX_URL = './jump.mp3';
+const LAND_SFX_URL = './land.mp3';
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
