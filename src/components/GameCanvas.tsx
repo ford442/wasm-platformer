@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { GameModule } from '../wasm/loader'; // Corrected import name
+import loadGameModule, { GameModule } from '../wasm/loader'; // Corrected import
 import { Renderer } from '../gl/renderer';
 
 const GameCanvas: React.FC = () => {
@@ -16,22 +16,21 @@ const GameCanvas: React.FC = () => {
     useEffect(() => {
         const init = async () => {
             try {
+                if (!canvasRef.current) return;
+
                 // Fetch shaders and wasm module in parallel
                 const [spriteVs, spriteFs, bgVs, bgFs, module] = await Promise.all([
                     fetch('shaders/sprite.vs').then(res => res.text()),
                     fetch('shaders/sprite.fs').then(res => res.text()),
                     fetch('shaders/background.vs').then(res => res.text()),
                     fetch('shaders/background.fs').then(res => res.text()),
-                    new GameModule().load()
+                    loadGameModule() // Correctly call the loader function
                 ]);
 
                 wasmModule.current = module;
                 game.current = new module.instance.Game();
-
-                if (canvasRef.current) {
-                    renderer.current = new Renderer(canvasRef.current, spriteVs, spriteFs, bgVs, bgFs);
-                    await renderer.current.init(); // Correctly call the new init method
-                }
+                renderer.current = new Renderer(canvasRef.current, spriteVs, spriteFs, bgVs, bgFs);
+                await renderer.current.init();
                 
                 setIsLoading(false);
 
@@ -51,6 +50,7 @@ const GameCanvas: React.FC = () => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            game.current?.delete();
         };
     }, []);
 
@@ -73,12 +73,10 @@ const GameCanvas: React.FC = () => {
             const backgroundDataPtr = game.current.getBackgroundData();
             const soundDataPtr = game.current.getSoundData();
 
-            // Create typed arrays from the pointers
             const spriteData = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, renderDataPtr.data(), renderDataPtr.size() * 8);
             const backgroundData = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, backgroundDataPtr.data(), backgroundDataPtr.size() * 4);
             const soundsToPlay = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, soundDataPtr.data(), soundDataPtr.size());
 
-            // Correctly call the draw method
             renderer.current.draw(spriteData, backgroundData);
 
             soundsToPlay.forEach((soundId: number) => {
@@ -101,6 +99,7 @@ const GameCanvas: React.FC = () => {
     }, [isLoading, error]);
 
     if (error) return <p style={{ color: 'red' }}>Error: {error}</p>;
+    
     return (
         <div>
             {isLoading ? <p>Loading...</p> : <canvas ref={canvasRef} width={800} height={600} />}
