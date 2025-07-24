@@ -1,3 +1,5 @@
+import createWasmModule from './main.js';
+
 // Define the shape of the C++ Game class exposed via Emscripten
 interface Game {
   new(): Game; // Constructor
@@ -18,18 +20,9 @@ export interface GameModule {
   };
 }
 
-// This imports the factory function from the emscripten-generated main.js
-// The '?url' suffix is a Vite feature that gives us the URL to the asset
-import createWasmModule from '/main.js?url';
-
 // Default export of the loader function
 export default async function loadGameModule(): Promise<GameModule> {
-  const module = await (window as any).createWasmModule({
-    canvas: (() => {
-      const canvas = document.createElement('canvas');
-      document.body.appendChild(canvas);
-      return canvas;
-    })(),
-  });
-  return module;
+  // Since we now have a proper ES6 module, we can call it directly.
+  const module = await createWasmModule();
+  return module as unknown as GameModule;
 }
