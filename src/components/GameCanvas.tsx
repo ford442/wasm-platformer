@@ -80,7 +80,18 @@ const GameCanvas = () => {
         gameInstance = new wasmModule.Game();
         
         // New: Pass the sound handler function to the C++ game instance
-        gameInstance.setSoundCallback(handleSoundEvent);
+           const soundData = game.current.getSoundData();
+            
+            // The vector is reused, so we need to get a copy to iterate safely
+            const soundsToPlay = new Float32Array(wasmModule.current.instance.HEAPF32.buffer, soundData.data(), soundData.size());
+
+            soundsToPlay.forEach((soundId: number) => {
+                if (soundId === 1) { // 1 is the ID for the jump sound
+                    jumpSound.current.currentTime = 0;
+                    jumpSound.current.play();
+                }
+                // You could add else if (soundId === 2) for another sound, etc.
+            });
         
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
