@@ -1,58 +1,21 @@
 // src/filament/renderer.ts
-import { default as Filament, Destroyable, FilamentAsset, Camera, Engine, Entity, EntityManager, IndirectLight, Material, MaterialInstance, RenderableManager, Scene, Skinning, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
+import { default as Filament, Camera, Engine, Entity, EntityManager, IndirectLight, Material, MaterialInstance, RenderableManager, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
 
-// Define the structure of the render data we expect from the C++ WASM module.
+// Define the structure of the render data from WASM.
 export type RenderData = {
     buffer: ArrayBuffer;
-    player: {
-        x: number;
-        y: number;
-        vx: number;
-        vy: number;
-        isJumping: boolean;
-        isFacingLeft: boolean;
-        animFrame: number;
-    };
-    platforms: {
-        count: number;
-        // Other platform data if needed in the future
-    };
 };
 
 const RENDER_TYPE_PLAYER = 0;
 const RENDER_TYPE_PLATFORM = 1;
 
-// A simple utility class to manage Filament entities for our sprites.
-class Sprite {
-    private static readonly vec3 = new Float32Array(3);
-    private static readonly quat = new Float32Array(4);
-    entity: Entity;
-    tcm: TransformManager;
-    sm: RenderableManager;
-
-    constructor(entity: Entity, tcm: TransformManager, sm: RenderableManager) {
-        this.entity = entity;
-        this.tcm = tcm;
-        this.sm = sm;
-    }
-
-    set_position(x: number, y: number, z: number) {
-        const tcm = this.tcm;
-        const inst = tcm.getInstance(this.entity);
-        Sprite.vec3[0] = x;
-        Sprite.vec3[1] = y;
-        Sprite.vec3[2] = z;
-        tcm.setTransform(inst, Sprite.vec3, Sprite.quat);
-    }
-}
-
 export class FilamentRenderer {
     private canvas: HTMLCanvasElement;
-    private engine: Engine | null = null;
-    private scene: Scene | null = null;
-    private view: View | null = null;
-    private camera: Camera | null = null;
-    private swapChain: SwapChain | null = null;
+    private engine: Engine;
+    private scene: Scene;
+    private view: View;
+    private camera: Camera;
+    private swapChain: SwapChain;
 
     // Asset properties
     private unlitMaterial: Material | null = null;
@@ -63,9 +26,8 @@ export class FilamentRenderer {
 
     // Entity-related properties
     private entities: Entity[] = [];
-    private sprites: Sprite[] = [];
-    private quadVertexBuffer: RenderableManager.VertexBuffer | null = null;
-    private quadIndexBuffer: RenderableManager.IndexBuffer | null = null;
+    private quadVertexBuffer: RenderableManager$VertexBuffer | null = null;
+    private quadIndexBuffer: RenderableManager$IndexBuffer | null = null;
 
 
     constructor(canvas: HTMLCanvasElement) {
@@ -74,11 +36,9 @@ export class FilamentRenderer {
 
     // Main initialization method
     async initialize() {
-        // Load Filament's WASM module and assets
-        await Filament.init(['filament-wasm.wasm'], {
-            // Tell Filament where to find its IBL asset
-            ibl: 'ibl.ktx'
-        });
+        // Correctly initialize Filament and provide asset URLs
+        const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+        await Filament.init([`${assetPath}/filament-wasm.wasm`, `${assetPath}/ibl.ktx`]);
 
         this.engine = Engine.create(this.canvas);
         this.scene = this.engine.createScene();
@@ -89,93 +49,81 @@ export class FilamentRenderer {
         this.view.setCamera(this.camera);
         this.view.setScene(this.scene);
 
-        // Set up an orthographic projection for our 2D game
         this.resize();
         window.addEventListener('resize', () => this.resize(), false);
 
-        // Load all game assets
         await this.loadAssets();
-
-        // Create the geometry for our sprites (a simple quad)
         this.createQuadGeometry();
     }
 
-    // Loads materials and textures
-     private async loadAssets() {
-        if (!this.engine) return;
-
-        const materialBlob = await (await fetch('materials/unlit_textured.filamat')).blob();
-        this.unlitMaterial = await this.engine.createMaterial(await materialBlob.arrayBuffer());
+    private async loadAssets() {
+        const materialBlob = await (await fetch('materials/unlit_textured.filamat')).arrayBuffer();
+        this.unlitMaterial = this.engine.createMaterial(materialBlob);
 
         this.playerTexture = await this.loadTexture('wazzy_spritesheet.png');
         this.platformTexture = await this.loadTexture('platform.png');
 
-        this.playerMaterialInstance = this.unlitMaterial.createInstance('Player Material');
-        this.platformMaterialInstance = this.unlitMaterial.createInstance('Platform Material');
+        this.playerMaterialInstance = this.unlitMaterial.createInstance();
+        this.platformMaterialInstance = this.unlitMaterial.createInstance();
 
-        const sampler = new TextureSampler('nearest', 'nearest', 'clamp-to-edge');
-
-        // Set the texture parameter (the old problematic 'baseColor' lines are now gone)
-        this.playerMaterialInstance.setParameter('baseColorMap', this.playerTexture, sampler);
-        this.platformMaterialInstance.setParameter('baseColorMap', this.platformTexture, sampler);
+        // Use Filament's enums for the sampler
+        const sampler = new TextureSampler(Filament.MinFilter.NEAREST, Filament.MagFilter.NEAREST, Filament.WrapMode.CLAMP_TO_EDGE);
+        
+        // Use the correct setTextureParameter method
+        this.playerMaterialInstance.setTextureParameter('baseColorMap', this.playerTexture, sampler);
+        this.platformMaterialInstance.setTextureParameter('baseColorMap', this.platformTexture, sampler);
     }
 
-    // Helper to load a PNG and create a Filament Texture
     private async loadTexture(url: string): Promise<Texture> {
         const response = await fetch(url);
         const image = await createImageBitmap(await response.blob());
-        const texture = this.engine!.createTexture(image, {
-            format: 'rgba8',
-            usage: 'color_attachment',
-            mipLevels: 1,
-        });
+        // Use the texture builder for creation
+        const texture = new Texture.Builder()
+            .width(image.width)
+            .height(image.height)
+            .levels(1)
+            .usage(Texture.Usage.COLOR_ATTACHMENT)
+            .format(Texture.InternalFormat.RGBA8)
+            .build(this.engine);
+        texture.setImage(this.engine, 0, image);
         return texture;
     }
-
-    // Creates vertex and index buffers for a 1x1 quad
+    
     private createQuadGeometry() {
-        if (!this.engine) return;
-
         const POS_UV = new Float32Array([
-            // Position (x,y,z)  UV (u,v)
-            -0.5, -0.5, 0.0,       0.0, 1.0, // bottom-left
-             0.5, -0.5, 0.0,       1.0, 1.0, // bottom-right
-            -0.5,  0.5, 0.0,       0.0, 0.0, // top-left
-             0.5,  0.5, 0.0,       1.0, 0.0, // top-right
+            -0.5, -0.5, 0.0, 0.0, 1.0,
+             0.5, -0.5, 0.0, 1.0, 1.0,
+            -0.5,  0.5, 0.0, 0.0, 0.0,
+             0.5,  0.5, 0.0, 1.0, 0.0,
         ]);
 
-        const INDICES = new Uint16Array([
-            0, 1, 2, 2, 1, 3
-        ]);
+        const INDICES = new Uint16Array([0, 1, 2, 2, 1, 3]);
 
-        const vertexBuffer = RenderableManager.VertexBuffer.Builder()
+        // Use the correct builder pattern from Filament
+        const vb = new Filament.VertexBuffer.Builder()
             .vertexCount(4)
             .bufferCount(1)
-            .attribute(RenderableManager.VertexAttribute.POSITION, 0, 'float3', 0, 20)
-            .attribute(RenderableManager.VertexAttribute.UV0, 0, 'float2', 12, 20)
+            .attribute(Filament.VertexAttribute.POSITION, 0, Filament.VertexBuffer$AttributeType.FLOAT3, 0, 20)
+            .attribute(Filament.VertexAttribute.UV0, 0, Filament.VertexBuffer$AttributeType.FLOAT2, 12, 20)
             .build(this.engine);
-        vertexBuffer.setBufferAt(this.engine, 0, POS_UV);
-        this.quadVertexBuffer = vertexBuffer;
-        
-        const indexBuffer = RenderableManager.IndexBuffer.Builder()
+        vb.setBufferAt(this.engine, 0, POS_UV);
+        this.quadVertexBuffer = vb;
+
+        const ib = new Filament.IndexBuffer.Builder()
             .indexCount(6)
-            .bufferType('ushort')
+            .bufferType(Filament.IndexBuffer$IndexType.USHORT)
             .build(this.engine);
-        indexBuffer.setBuffer(this.engine, INDICES);
-        this.quadIndexBuffer = indexBuffer;
+        ib.setBuffer(this.engine, INDICES);
+        this.quadIndexBuffer = ib;
     }
 
-    // Main draw call for each frame
     public draw(renderData: RenderData, renderer: Filament.Renderer) {
-        if (!this.engine || !this.scene || !this.view || !this.quadVertexBuffer || !this.quadIndexBuffer) return;
-
-        // Clear previous frame's entities from the scene
+        // Clear previous entities
         for (const entity of this.entities) {
             this.scene.remove(entity);
-            this.engine.destroy(entity); // Also destroy the entity itself
+            Engine.destroy(entity); // Use static destroy method
         }
         this.entities = [];
-        this.sprites = [];
 
         const renderableView = new DataView(renderData.buffer);
         const numObjects = renderableView.getUint32(0, true);
@@ -187,61 +135,55 @@ export class FilamentRenderer {
             const y = renderableView.getFloat32(offset + 8, true);
             const w = renderableView.getFloat32(offset + 12, true);
             const h = renderableView.getFloat32(offset + 16, true);
-            const u0 = renderableView.getFloat32(offset + 20, true);
-            const v0 = renderableView.getFloat32(offset + 24, true);
-            const u1 = renderableView.getFloat32(offset + 28, true);
-            const v1 = renderableView.getFloat32(offset + 32, true);
+            // We don't need UVs from WASM for this simple case, but we advance the offset
             offset += 36;
             
-            let materialInstance = null;
-            if (type === RENDER_TYPE_PLAYER) {
-                materialInstance = this.playerMaterialInstance;
-            } else if (type === RENDER_TYPE_PLATFORM) {
-                materialInstance = this.platformMaterialInstance;
-            }
-
+            let materialInstance = type === RENDER_TYPE_PLAYER ? this.playerMaterialInstance : this.platformMaterialInstance;
             if (!materialInstance) continue;
 
-            // Create a new entity for this sprite
             const entity = EntityManager.get().create();
             this.entities.push(entity);
             
-            // Create a renderable for the entity (the quad)
             new RenderableManager.Builder(1)
                 .boundingBox({ center: [0, 0, 0], halfExtent: [0.5, 0.5, 0.02] })
                 .material(0, materialInstance)
-                .geometry(0, 'triangles', this.quadVertexBuffer, this.quadIndexBuffer)
+                .geometry(0, Filament.RenderableManager$PrimitiveType.TRIANGLES, this.quadVertexBuffer!, this.quadIndexBuffer!)
                 .build(this.engine, entity);
 
             this.scene.addEntity(entity);
 
-            // Set the entity's transform (position and scale)
             const tcm = this.engine.getTransformManager();
             const inst = tcm.getInstance(entity);
-            tcm.setTransform(inst, [x, y, 0], [0, 0, 0, 1]);
-            tcm.setScale(inst, [w, h, 1]);
+            // setTransform now expects a 16-element matrix (mat4)
+            const transform = mat4.create();
+            mat4.translate(transform, transform, [x, y, 0]);
+            mat4.scale(transform, transform, [w, h, 1]);
+            tcm.setTransform(inst, transform as unknown as number[]);
         }
 
-        renderer.render(this.swapChain!, this.view);
+        renderer.render(this.swapChain, this.view);
     }
 
-    // Handle window resizing to adjust the camera projection
     public resize() {
-        if (!this.camera || !this.view) return;
         const dpr = window.devicePixelRatio;
         const width = this.canvas.width = this.canvas.clientWidth * dpr;
         const height = this.canvas.height = this.canvas.clientHeight * dpr;
         this.view.setViewport([0, 0, width, height]);
 
         const aspect = width / height;
-        const V_HEIGHT = 10; // Viewport height in world units
+        const V_HEIGHT = 10;
         const V_WIDTH = V_HEIGHT * aspect;
-
-        // Orthographic projection
-        this.camera.setProjection('ortho', -V_WIDTH/2, V_WIDTH/2, -V_HEIGHT/2, V_HEIGHT/2, 0, 10);
+        
+        // Use the correct enum for projection type
+        this.camera.setProjection(Filament.Camera$Projection.ORTHO, -V_WIDTH/2, V_WIDTH/2, -V_HEIGHT/2, V_HEIGHT/2, 0, 10);
     }
 
-    public getEngine(): Engine | null {
+    public getEngine(): Engine {
         return this.engine;
     }
 }
+
+// To fix the transform error, you need a matrix library.
+// gl-matrix is a standard choice. Run `npm install gl-matrix`
+// and then import it at the top of the file.
+import { mat4 } from 'gl-matrix';
