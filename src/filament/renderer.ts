@@ -1,21 +1,18 @@
 // src/filament/renderer.ts
-import { default as Filament, Camera, Engine, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, Texture$Builder, TextureSampler, TransformManager, View } from "filament";
+import { default as Filament, Camera, Engine, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
 import { mat4 } from 'gl-matrix';
 
-// This type is defined by Filament's modern API
+// This type alias is needed for createMaterial
 type BufferReference = Uint8Array | Uint16Array | Float32Array;
 
-// The structure of the render data from WASM.
 export type RenderData = {
     buffer: ArrayBuffer;
 };
 
 const RENDER_TYPE_PLAYER = 0;
-// const RENDER_TYPE_PLATFORM = 1; // This is not strictly needed if we just default
 
 export class FilamentRenderer {
     private canvas: HTMLCanvasElement;
-    // Use the non-null assertion operator '!' because these are initialized in an async method.
     private engine!: Engine;
     private scene!: Scene;
     private view!: View;
@@ -23,14 +20,12 @@ export class FilamentRenderer {
     private swapChain!: SwapChain;
     private renderer!: Renderer;
 
-    // Asset properties
     private unlitMaterial!: Material;
     private playerTexture!: Texture;
     private platformTexture!: Texture;
     private playerMaterialInstance!: MaterialInstance;
     private platformMaterialInstance!: MaterialInstance;
 
-    // Entity-related properties
     private entities: Entity[] = [];
     private quadVertexBuffer!: Filament.VertexBuffer;
     private quadIndexBuffer!: Filament.IndexBuffer;
@@ -62,19 +57,16 @@ export class FilamentRenderer {
 
     private async loadAssets() {
         const materialBlob = await (await fetch('materials/unlit_textured.filamat')).arrayBuffer();
-        // createMaterial expects a BufferReference, so we wrap the ArrayBuffer in a Uint8Array
         this.unlitMaterial = this.engine.createMaterial(new Uint8Array(materialBlob));
 
         this.playerTexture = await this.loadTexture('wazzy_spritesheet.png');
         this.platformTexture = await this.loadTexture('platform.png');
 
-        // createInstance now takes no arguments
         this.playerMaterialInstance = this.unlitMaterial.createInstance();
         this.platformMaterialInstance = this.unlitMaterial.createInstance();
 
         const sampler = new TextureSampler(Filament.MinFilter.NEAREST, Filament.MagFilter.NEAREST, Filament.WrapMode.CLAMP_TO_EDGE);
         
-        // Use setTextureParameter to assign textures
         this.playerMaterialInstance.setTextureParameter('baseColorMap', this.playerTexture, sampler);
         this.platformMaterialInstance.setTextureParameter('baseColorMap', this.platformTexture, sampler);
     }
@@ -83,52 +75,54 @@ export class FilamentRenderer {
         const response = await fetch(url);
         const image = await createImageBitmap(await response.blob());
         
-        // Use the correct builder pattern, now accessed via Filament.Texture$Builder
+        // Correctly use the TextureUsage enum
         const texture = new Filament.Texture$Builder()
             .width(image.width)
             .height(image.height)
             .levels(1)
-            .usage(Filament.Texture$Usage.COLOR_ATTACHMENT)
+            .usage(Filament.TextureUsage.COLOR_ATTACHMENT) // Corrected from Texture$Usage
             .format(Filament.Texture$InternalFormat.RGBA8)
             .build(this.engine);
         
-        texture.setImage(this.engine, 0, image);
+        // Convert ImageBitmap to PixelBuffer to satisfy the API
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(image, 0, 0);
+        const imageData = ctx.getImageData(0, 0, image.width, image.height);
+        const pixelBuffer = {
+            buffer: imageData.data.buffer,
+            width: image.width,
+            height: image.height,
+            format: 'rgba',
+            type: 'ubyte'
+        };
+
+        texture.setImage(this.engine, 0, pixelBuffer as unknown as Filament.driver$PixelBufferDescriptor);
         return texture;
     }
     
     private createQuadGeometry() {
-        // (x, y, z, u, v)
-        const POS_UV = new Float32Array([
-            -0.5, -0.5, 0.0, 0.0, 1.0,
-             0.5, -0.5, 0.0, 1.0, 1.0,
-            -0.5,  0.5, 0.0, 0.0, 0.0,
-             0.5,  0.5, 0.0, 1.0, 0.0,
-        ]);
-
+        const POS_UV = new Float32Array([-0.5,-0.5,0,0,1, 0.5,-0.5,0,1,1, -0.5,0.5,0,0,0, 0.5,0.5,0,1,0]);
         const INDICES = new Uint16Array([0, 1, 2, 2, 1, 3]);
 
-        const vb = new Filament.VertexBuffer$Builder()
-            .vertexCount(4)
-            .bufferCount(1)
+        this.quadVertexBuffer = new Filament.VertexBuffer$Builder()
+            .vertexCount(4).bufferCount(1)
             .attribute(Filament.VertexAttribute.POSITION, 0, Filament.VertexBuffer$AttributeType.FLOAT3, 0, 20)
             .attribute(Filament.VertexAttribute.UV0, 0, Filament.VertexBuffer$AttributeType.FLOAT2, 12, 20)
             .build(this.engine);
-        vb.setBufferAt(this.engine, 0, POS_UV);
-        this.quadVertexBuffer = vb;
+        this.quadVertexBuffer.setBufferAt(this.engine, 0, POS_UV);
 
-        const ib = new Filament.IndexBuffer$Builder()
-            .indexCount(6)
-            .bufferType(Filament.IndexBuffer$IndexType.USHORT)
-            .build(this.engine);
-        ib.setBuffer(this.engine, INDICES);
-        this.quadIndexBuffer = ib;
+        this.quadIndexBuffer = new Filament.IndexBuffer$Builder()
+            .indexCount(6).bufferType(Filament.IndexBuffer$IndexType.USHORT).build(this.engine);
+        this.quadIndexBuffer.setBuffer(this.engine, INDICES);
     }
 
     public draw(renderData: RenderData) {
-        // Destroy previous entities
         for (const entity of this.entities) {
-            // The engine instance has the destroy method for entities
-            this.engine.destroy(entity);
+            // The static Engine.destroy takes the engine instance AND the object to destroy
+            Filament.Engine.destroy(this.engine, entity);
         }
         this.entities = [];
 
@@ -145,11 +139,12 @@ export class FilamentRenderer {
             offset += 36;
             
             let materialInstance = type === RENDER_TYPE_PLAYER ? this.playerMaterialInstance : this.platformMaterialInstance;
-            
             const entity = EntityManager.get().create();
             this.entities.push(entity);
             
-            new Filament.RenderableManager$Builder(1)
+            // Correctly call the builder with no arguments
+            new Filament.RenderableManager$Builder()
+                .count(1)
                 .boundingBox({ center: [0, 0, 0], halfExtent: [0.5, 0.5, 0.02] })
                 .material(0, materialInstance)
                 .geometry(0, Filament.RenderableManager$PrimitiveType.TRIANGLES, this.quadVertexBuffer, this.quadIndexBuffer)
@@ -162,12 +157,12 @@ export class FilamentRenderer {
             const transform = mat4.create();
             mat4.translate(transform, transform, [x, y, 0]);
             mat4.scale(transform, transform, [w, h, 1]);
-            // The modern API expects a mat4 (as a number array)
             tcm.setTransform(inst, transform as unknown as number[]);
         }
 
         if (this.renderer.beginFrame(this.swapChain)) {
-            this.renderer.render(this.view);
+            // Correctly call render with both the swapChain and the view
+            this.renderer.render(this.swapChain, this.view);
             this.renderer.endFrame();
         }
     }
@@ -181,7 +176,6 @@ export class FilamentRenderer {
         const aspect = width / height;
         const V_HEIGHT = 10;
         const V_WIDTH = V_HEIGHT * aspect;
-        
         this.camera.setProjection(Filament.Camera$Projection.ORTHO, -V_WIDTH/2, V_WIDTH/2, -V_HEIGHT/2, V_HEIGHT/2, 0, 10);
     }
 }
