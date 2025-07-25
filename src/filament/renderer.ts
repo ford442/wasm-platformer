@@ -116,10 +116,18 @@ export class FilamentRenderer {
         this.playerMaterialInstance = this.unlitMaterial.createInstance('Player Material');
         this.platformMaterialInstance = this.unlitMaterial.createInstance('Platform Material');
         
-        // Set the 'baseColor' parameter of the material instance to our textures
+        // Define our sampler
         const sampler = new TextureSampler('nearest', 'nearest', 'clamp-to-edge');
-        this.playerMaterialInstance.setParameter('baseColor', this.playerTexture, sampler);
-        this.platformMaterialInstance.setParameter('baseColor', this.platformTexture, sampler);
+
+        // Set the 'baseColorMap' parameter to our player texture
+        this.playerMaterialInstance.setParameter('baseColorMap', this.playerTexture, sampler);
+        // Set the 'baseColor' tint to white (RGBA). A white tint means the original texture colors are not changed.
+        this.playerMaterialInstance.setParameter('baseColor', [1.0, 1.0, 1.0, 1.0]);
+
+        // Set the 'baseColorMap' parameter to our platform texture
+        this.platformMaterialInstance.setParameter('baseColorMap', this.platformTexture, sampler);
+        // Set the 'baseColor' tint to white (RGBA) for the platforms as well.
+        this.platformMaterialInstance.setParameter('baseColor', [1.0, 1.0, 1.0, 1.0]);
     }
 
     // Helper to load a PNG and create a Filament Texture
