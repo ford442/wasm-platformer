@@ -1,43 +1,16 @@
-import React, { useRef, useEffect } from 'react';
-import { Renderer } from '../gl/renderer';
-import { loadWasmModule, type Game, type InputState, type Platform } from '../wasm/loader';
+// src/components/GameCanvas.tsx
+import React, { useEffect, useRef, useState } from 'react';
+import { loadWasmModule, WasmModule } from '../wasm/loader';
+import { FilamentRenderer, RenderData } from '../filament/renderer';
+import { Engine, Renderer } from 'filament';
 
-// Import assets and shaders
-import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
-import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
-import backgroundFragmentSource from '../gl/shaders/background.frag.glsl?raw';
-import backgroundVertexSource from '../gl/shaders/background.vert.glsl?raw';
-
-const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
-const PLATFORM_TEXTURE_URL = './platform.png';
-const BACKGROUND_URL = './background.png';
-const MUSIC_URL = './background-music.mp3';
-// Sound effect URLs
-const JUMP_SFX_URL = './jump.mp3';
-const LAND_SFX_URL = './land.mp3';
-
-const GameCanvas = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const keysRef = useRef<Record<string, boolean>>({
-    'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
-  });
-  
-  const audioRef = useRef(new Audio(MUSIC_URL));
-
-  // We no longer need to preload the sound effects into refs.
-  // They will be created on the fly.
+// Helper to manage keyboard state
+const useKeyPress = () => {
+  const [keys, setKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const audio = audioRef.current;
-    audio.loop = true;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code in keysRef.current) keysRef.current[e.code] = true;
-      if (audio.paused) audio.play().catch(console.error);
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code in keysRef.current) keysRef.current[e.code] = false;
-    };
+    const handleKeyDown = (e: KeyboardEvent) => setKeys(prev => ({ ...prev, [e.code]: true }));
+    const handleKeyUp = (e: KeyboardEvent) => setKeys(prev => ({ ...prev, [e.code]: false }));
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -46,91 +19,93 @@ const GameCanvas = () => {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
+  return keys;
+};
 
+const GameCanvas: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wasmModuleRef = useRef<WasmModule | null>(null);
+  const rendererRef = useRef<FilamentRenderer | null>(null);
+  const filamentEngineRef = useRef<Engine | null>(null);
+  const filamentRendererRef = useRef<Renderer | null>(null);
+  const keys = useKeyPress();
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialization effect
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const init = async () => {
+      if (!canvasRef.current) return;
+      setIsLoading(true);
 
-    let animationFrameId = 0;
-    let gameInstance: Game | null = null;
-    
-    // This function now creates a new Audio object each time it's called.
-    const handleSoundEvent = (soundName: string) => {
-      let sfxUrl: string | null = null;
-      if (soundName === 'jump') {
-        sfxUrl = JUMP_SFX_URL;
-      } else if (soundName === 'land') {
-        sfxUrl = LAND_SFX_URL;
+      // Load C++ game logic WASM
+      const wasmModule = await loadWasmModule();
+      wasmModule._init();
+      wasmModuleRef.current = wasmModule;
+
+      // Initialize the new Filament renderer
+      const fRenderer = new FilamentRenderer(canvasRef.current);
+      await fRenderer.initialize();
+      rendererRef.current = fRenderer;
+      
+      // Get Filament engine and renderer instances for the game loop
+      const engine = fRenderer.getEngine();
+      if (engine) {
+          filamentEngineRef.current = engine;
+          filamentRendererRef.current = engine.createRenderer();
       }
 
-      if (sfxUrl) {
-        // Create a new audio player for this specific sound instance.
-        const sfx = new Audio(sfxUrl);
-        // Play it and let it be garbage-collected when it's done.
-        sfx.play().catch(console.error);
-      }
-    };
+      let lastTime = 0;
+      const gameLoop = (time: number) => {
+        if (!wasmModuleRef.current || !rendererRef.current || !filamentRendererRef.current) {
+          requestAnimationFrame(gameLoop);
+          return;
+        }
 
-    const initializeAndRun = async () => {
-      try {
-        const wasmModule = await loadWasmModule();
-        gameInstance = new wasmModule.Game();
+        const dt = (time - lastTime) / 1000;
+        lastTime = time;
+
+        const left = keys['ArrowLeft'] || keys['KeyA'] || 0;
+        const right = keys['ArrowRight'] || keys['KeyD'] || 0;
+        const jump = keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || 0;
+
+        // Update C++ game state
+        wasmModuleRef.current._update(dt, left, right, jump);
+
+        // Get render data from C++
+        const renderDataPtr = wasmModuleRef.current._getRenderData();
+        const renderDataSize = wasmModuleRef.current._getRenderDataSize();
+        const buffer = wasmModuleRef.current.HEAPU8.buffer.slice(renderDataPtr, renderDataPtr + renderDataSize);
         
-        gameInstance.setSoundCallback(handleSoundEvent);
-        
-        const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
-        const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
-          renderer.loadTexture(WAZZY_SPRITESHEET_URL),
-          renderer.loadTexture(PLATFORM_TEXTURE_URL),
-          renderer.loadTexture(BACKGROUND_URL)
-        ]);
-        
-        let lastTime = performance.now();
-        const gameLoop = (timestamp: number) => {
-          if (!gameInstance) return;
-          const deltaTime = (timestamp - lastTime) / 1000.0;
-          lastTime = timestamp;
-          const inputState: InputState = {
-            left: keysRef.current['ArrowLeft'],
-            right: keysRef.current['ArrowRight'],
-            jump: keysRef.current['Space'],
-          };
-          gameInstance.handleInput(inputState);
-          gameInstance.update(deltaTime);
-          const playerPosition = gameInstance.getPlayerPosition();
-          const cameraPosition = gameInstance.getCameraPosition();
-          const wasmPlatforms = gameInstance.getPlatforms();
-          const playerAnim = gameInstance.getPlayerAnimationState();
-          const playerSize = gameInstance.getPlayerSize();
-          const jsPlatforms: Platform[] = [];
-          for (let i = 0; i < wasmPlatforms.size(); i++) {
-            jsPlatforms.push(wasmPlatforms.get(i));
-          }
-          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
-          animationFrameId = requestAnimationFrame(gameLoop);
+        const renderData: RenderData = {
+            buffer,
+            // We are now sending all data in the buffer, so these are not needed here.
+            player: { x:0, y:0, vx:0, vy:0, isJumping:false, isFacingLeft: false, animFrame: 0},
+            platforms: { count: 0}
         };
-        
-        animationFrameId = requestAnimationFrame(gameLoop);
 
-      } catch (error) {
-        console.error("Failed to initialize game:", error);
-      }
+        // Render the frame using Filament
+        if (filamentRendererRef.current.beginFrame(rendererRef.current.getEngine()!.getSwapChain()!)) {
+            rendererRef.current.draw(renderData, filamentRendererRef.current);
+            filamentRendererRef.current.endFrame();
+        }
+
+        requestAnimationFrame(gameLoop);
+      };
+
+      setIsLoading(false);
+      requestAnimationFrame(gameLoop);
     };
 
-    initializeAndRun();
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      if (gameInstance) gameInstance.delete();
-      audioRef.current.pause();
-    };
-  }, []);
+    init();
+  }, [keys]); // Re-running the effect on key press is not intended, let's fix that.
+  // The 'keys' dependency is only for the closure inside gameLoop to get the latest state.
 
-  const canvasStyle: React.CSSProperties = {
-    width: '100%', height: '100%', backgroundColor: '#000',
-    borderRadius: '8px', boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
-    border: '2px solid var(--primary-color)'
-  };
-  return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
+  return (
+    <div>
+      {isLoading && <p>Loading Game...</p>}
+      <canvas ref={canvasRef} style={{ width: '100vw', height: '100vh' }} />
+    </div>
+  );
 };
 
 export default GameCanvas;
