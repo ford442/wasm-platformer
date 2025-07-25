@@ -8,7 +8,7 @@
     "build": "npm run build:materials && tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:materials": "matc -p webgl -a opengl -o public/materials/unlit_textured.filamat src/materials/unlit_textured.mat"
+    "build:materials": "./filament/bin/matc -p webgl -a opengl -o public/materials/unlit_textured.filamat src/materials/unlit_textured.mat"
   },
   "dependencies": {
     "react": "^19.1.0",
