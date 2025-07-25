@@ -1,5 +1,6 @@
 // src/components/GameCanvas.tsx
 import React, { useEffect, useRef, useState } from 'react';
+// The name 'WasmModule' was incorrect. 'GameModule' is what your loader exports.
 import { loadWasmModule, GameModule } from '../wasm/loader';
 import { FilamentRenderer, RenderData } from '../filament/renderer';
 
@@ -31,9 +32,8 @@ const GameCanvas: React.FC = () => {
       setIsLoading(true);
 
       const wasmModule = await loadWasmModule();
-      // Emscripten modules often still have an init/onRuntimeInitialized,
-      // but we assume it's handled by the loader. Call your specific init if needed.
-      // wasmModule.init(); // Assuming your C++ has an 'init' function
+      // The _init function is part of your C++ module's interface
+      wasmModule._init();
       wasmModuleRef.current = wasmModule;
 
       const fRenderer = new FilamentRenderer(canvasRef.current);
@@ -54,17 +54,16 @@ const GameCanvas: React.FC = () => {
         const right = keysPressed['ArrowRight'] || keysPressed['KeyD'] || 0;
         const jump = keysPressed['Space'] || keysPressed['ArrowUp'] || keysPressed['KeyW'] || 0;
 
-        // Call WASM functions without the leading underscore
-        wasmModuleRef.current.update(dt, left, right, jump);
+        // Correctly calling the WASM functions with underscores
+        wasmModuleRef.current._update(dt, left, right, jump);
 
-        const renderDataPtr = wasmModuleRef.current.getRenderData();
-        const renderDataSize = wasmModuleRef.current.getRenderDataSize();
-        // Access the heap correctly
+        const renderDataPtr = wasmModuleRef.current._getRenderData();
+        const renderDataSize = wasmModuleRef.current._getRenderDataSize();
+        // Correctly accessing the WASM heap
         const buffer = wasmModuleRef.current.HEAPU8.buffer.slice(renderDataPtr, renderDataPtr + renderDataSize);
         
         const renderData: RenderData = { buffer };
         
-        // The renderer now handles its own internal begin/end frame logic
         rendererRef.current.draw(renderData);
 
         requestAnimationFrame(gameLoop);
