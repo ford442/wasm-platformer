@@ -101,33 +101,23 @@ export class FilamentRenderer {
     }
 
     // Loads materials and textures
-    private async loadAssets() {
+     private async loadAssets() {
         if (!this.engine) return;
 
-        // Load the compiled material
         const materialBlob = await (await fetch('materials/unlit_textured.filamat')).blob();
         this.unlitMaterial = await this.engine.createMaterial(await materialBlob.arrayBuffer());
 
-        // Load textures
         this.playerTexture = await this.loadTexture('wazzy_spritesheet.png');
         this.platformTexture = await this.loadTexture('platform.png');
 
-        // Create material instances for each texture
         this.playerMaterialInstance = this.unlitMaterial.createInstance('Player Material');
         this.platformMaterialInstance = this.unlitMaterial.createInstance('Platform Material');
-        
-        // Define our sampler
+
         const sampler = new TextureSampler('nearest', 'nearest', 'clamp-to-edge');
 
-        // Set the 'baseColorMap' parameter to our player texture
+        // Set the texture parameter (the old problematic 'baseColor' lines are now gone)
         this.playerMaterialInstance.setParameter('baseColorMap', this.playerTexture, sampler);
-        // Set the 'baseColor' tint to white (RGBA). A white tint means the original texture colors are not changed.
-        this.playerMaterialInstance.setParameter('baseColor', [1.0, 1.0, 1.0, 1.0]);
-
-        // Set the 'baseColorMap' parameter to our platform texture
         this.platformMaterialInstance.setParameter('baseColorMap', this.platformTexture, sampler);
-        // Set the 'baseColor' tint to white (RGBA) for the platforms as well.
-        this.platformMaterialInstance.setParameter('baseColor', [1.0, 1.0, 1.0, 1.0]);
     }
 
     // Helper to load a PNG and create a Filament Texture
