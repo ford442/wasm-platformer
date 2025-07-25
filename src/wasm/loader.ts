@@ -31,10 +31,35 @@ export interface GameModule {
 
 // This function loads the Emscripten-generated WASM module.
 export const loadWasmModule = async (): Promise<GameModule> => {
-  // The 'createGameModule' function is attached to the window object by the game.js script.
-  const factory = (window as any).createGameModule;
-  if (!factory) {
-    throw new Error("WASM module factory not found on window. Did you include game.js in your index.html?");
-  }
-  return await factory() as GameModule;
+  return new Promise((resolve, reject) => {
+    // Create a script element to load the game's JavaScript file
+    const script = document.createElement('script');
+    script.src = 'https://test.1ink.us/platformer/game.js';
+    script.async = true;
+
+    // Define a function to be called once the script is loaded
+    script.onload = async () => {
+      // The script is expected to attach a factory function to the window
+      const factory = (window as any).createWasmVentureModule;
+      if (typeof factory !== 'function') {
+        return reject(new Error("WASM module factory ('createWasmVentureModule') not found on window."));
+      }
+
+      try {
+        // Call the factory to get the module instance
+        const module = await factory();
+        resolve(module as GameModule);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    // Handle script loading errors
+    script.onerror = () => {
+      reject(new Error("Failed to load WASM module script from: " + script.src));
+    };
+
+    // Append the script to the document's head to trigger loading
+    document.head.appendChild(script);
+  });
 };
