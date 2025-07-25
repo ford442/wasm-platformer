@@ -31,8 +31,9 @@ const GameCanvas: React.FC = () => {
       setIsLoading(true);
 
       const wasmModule = await loadWasmModule();
-      // This is required by your specific C++ module
-      wasmModule._init();
+      // Per compiler errors, _init does not exist on the type.
+      // If your C++ code requires an init, you may need to add it
+      // to the EXPORTED_FUNCTIONS list in your C++ build command.
       wasmModuleRef.current = wasmModule;
 
       const fRenderer = new FilamentRenderer(canvasRef.current);
@@ -53,12 +54,11 @@ const GameCanvas: React.FC = () => {
         const right = keysPressed['ArrowRight'] || keysPressed['KeyD'] || 0;
         const jump = keysPressed['Space'] || keysPressed['ArrowUp'] || keysPressed['KeyW'] || 0;
 
-        // Correctly calling WASM functions WITH underscores
-        wasmModuleRef.current._update(dt, left, right, jump);
+        // Correctly calling WASM functions WITHOUT underscores
+        wasmModuleRef.current.update(dt, left, right, jump);
 
-        const renderDataPtr = wasmModuleRef.current._getRenderData();
-        const renderDataSize = wasmModuleRef.current._getRenderDataSize();
-        // Correctly accessing the WASM heap property
+        const renderDataPtr = wasmModuleRef.current.getRenderData();
+        const renderDataSize = wasmModuleRef.current.getRenderDataSize();
         const buffer = wasmModuleRef.current.HEAPU8.buffer.slice(renderDataPtr, renderDataPtr + renderDataSize);
         
         const renderData: RenderData = { buffer };
