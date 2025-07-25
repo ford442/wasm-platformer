@@ -6,11 +6,11 @@ material {
     parameters : [
         {
             type : sampler2d,
-            name : "baseColorMap"
+            name : "baseColorMap" // Correctly named parameter
         },
         {
             type : float4,
-            name : "baseColor"
+            name : "baseColor"      // Correctly named parameter
         }
     ],
     requires : [
@@ -21,6 +21,7 @@ material {
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
+        // Use the correct parameter names here
         material.baseColor = texture(materialParams_baseColorMap, getUV0()) * materialParams_baseColor;
     }
 }
