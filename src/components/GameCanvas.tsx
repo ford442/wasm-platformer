@@ -1,8 +1,7 @@
 // src/components/GameCanvas.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { loadWasmModule, GameModule } from '../wasm/loader'; // Corrected import
+import { loadWasmModule, GameModule } from '../wasm/loader';
 import { FilamentRenderer, RenderData } from '../filament/renderer';
-import { Engine, Renderer } from 'filament';
 
 const useKeyPress = () => {
   const [keys, setKeys] = useState<Record<string, boolean>>({});
@@ -21,10 +20,8 @@ const useKeyPress = () => {
 
 const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wasmModuleRef = useRef<GameModule | null>(null); // Use GameModule
+  const wasmModuleRef = useRef<GameModule | null>(null);
   const rendererRef = useRef<FilamentRenderer | null>(null);
-  const filamentEngineRef = useRef<Engine | null>(null);
-  const filamentRendererRef = useRef<Renderer | null>(null);
   const keysPressed = useKeyPress();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,22 +31,18 @@ const GameCanvas: React.FC = () => {
       setIsLoading(true);
 
       const wasmModule = await loadWasmModule();
-      // wasmModule._init(); // This method does not exist on GameModule
+      // Emscripten modules often still have an init/onRuntimeInitialized,
+      // but we assume it's handled by the loader. Call your specific init if needed.
+      // wasmModule.init(); // Assuming your C++ has an 'init' function
       wasmModuleRef.current = wasmModule;
 
       const fRenderer = new FilamentRenderer(canvasRef.current);
       await fRenderer.initialize();
       rendererRef.current = fRenderer;
       
-      const engine = fRenderer.getEngine();
-      if (engine) {
-          filamentEngineRef.current = engine;
-          filamentRendererRef.current = engine.createRenderer();
-      }
-
       let lastTime = 0;
       const gameLoop = (time: number) => {
-        if (!wasmModuleRef.current || !rendererRef.current || !filamentRendererRef.current || !filamentEngineRef.current) {
+        if (!wasmModuleRef.current || !rendererRef.current) {
           requestAnimationFrame(gameLoop);
           return;
         }
@@ -61,19 +54,18 @@ const GameCanvas: React.FC = () => {
         const right = keysPressed['ArrowRight'] || keysPressed['KeyD'] || 0;
         const jump = keysPressed['Space'] || keysPressed['ArrowUp'] || keysPressed['KeyW'] || 0;
 
-        wasmModuleRef.current._update(dt, left, right, jump);
+        // Call WASM functions without the leading underscore
+        wasmModuleRef.current.update(dt, left, right, jump);
 
-        const renderDataPtr = wasmModuleRef.current._getRenderData();
-        const renderDataSize = wasmModuleRef.current._getRenderDataSize();
+        const renderDataPtr = wasmModuleRef.current.getRenderData();
+        const renderDataSize = wasmModuleRef.current.getRenderDataSize();
+        // Access the heap correctly
         const buffer = wasmModuleRef.current.HEAPU8.buffer.slice(renderDataPtr, renderDataPtr + renderDataSize);
         
         const renderData: RenderData = { buffer };
         
-        // The swapChain is now retrieved directly from the engine
-        if (filamentRendererRef.current.beginFrame(filamentEngineRef.current.getSwapChain()!)) {
-            rendererRef.current.draw(renderData, filamentRendererRef.current);
-            filamentRendererRef.current.endFrame();
-        }
+        // The renderer now handles its own internal begin/end frame logic
+        rendererRef.current.draw(renderData);
 
         requestAnimationFrame(gameLoop);
       };
