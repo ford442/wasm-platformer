@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:materials && tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:materials": "matc -p webgl -a opengl -o public/materials/unlit_textured.filamat src/materials/unlit_textured.mat"
