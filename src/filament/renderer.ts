@@ -2,7 +2,6 @@
 import { default as Filament, Camera, Engine, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
 import { mat4 } from 'gl-matrix';
 
-// This type alias is needed for createMaterial
 type BufferReference = Uint8Array | Uint16Array | Float32Array;
 
 export type RenderData = {
@@ -75,22 +74,24 @@ export class FilamentRenderer {
         const response = await fetch(url);
         const image = await createImageBitmap(await response.blob());
         
-        // Correctly use the TextureUsage enum
+        // The numeric value 0x1 corresponds to TextureUsage.COLOR_ATTACHMENT and avoids the const enum error.
+        const usage = 0x1; 
+
         const texture = new Filament.Texture$Builder()
             .width(image.width)
             .height(image.height)
             .levels(1)
-            .usage(Filament.TextureUsage.COLOR_ATTACHMENT) // Corrected from Texture$Usage
+            .usage(usage)
             .format(Filament.Texture$InternalFormat.RGBA8)
             .build(this.engine);
         
-        // Convert ImageBitmap to PixelBuffer to satisfy the API
         const canvas = document.createElement('canvas');
         canvas.width = image.width;
         canvas.height = image.height;
         const ctx = canvas.getContext('2d')!;
         ctx.drawImage(image, 0, 0);
         const imageData = ctx.getImageData(0, 0, image.width, image.height);
+        
         const pixelBuffer = {
             buffer: imageData.data.buffer,
             width: image.width,
@@ -120,9 +121,9 @@ export class FilamentRenderer {
     }
 
     public draw(renderData: RenderData) {
+        // Correctly destroy entities via the EntityManager singleton
         for (const entity of this.entities) {
-            // The static Engine.destroy takes the engine instance AND the object to destroy
-            Filament.Engine.destroy(this.engine, entity);
+            EntityManager.get().destroy(entity);
         }
         this.entities = [];
 
@@ -142,9 +143,8 @@ export class FilamentRenderer {
             const entity = EntityManager.get().create();
             this.entities.push(entity);
             
-            // Correctly call the builder with no arguments
+            // RenderableManager$Builder constructor takes no arguments
             new Filament.RenderableManager$Builder()
-                .count(1)
                 .boundingBox({ center: [0, 0, 0], halfExtent: [0.5, 0.5, 0.02] })
                 .material(0, materialInstance)
                 .geometry(0, Filament.RenderableManager$PrimitiveType.TRIANGLES, this.quadVertexBuffer, this.quadIndexBuffer)
@@ -161,7 +161,7 @@ export class FilamentRenderer {
         }
 
         if (this.renderer.beginFrame(this.swapChain)) {
-            // Correctly call render with both the swapChain and the view
+            // The renderer.render() call was missing its second argument
             this.renderer.render(this.swapChain, this.view);
             this.renderer.endFrame();
         }
