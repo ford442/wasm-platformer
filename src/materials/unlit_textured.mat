@@ -1,0 +1,26 @@
+// src/materials/unlit_textured.mat
+material {
+    name : "Unlit Textured",
+    blending : transparent,
+    shadingModel : unlit,
+    parameters : [
+        {
+            type : sampler2d,
+            name : "baseColor"
+        },
+        {
+            type : float4,
+            name : "baseColorFactor"
+        }
+    ],
+    requires : [
+        "uv0"
+    ]
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_baseColor, getUV0()) * materialParams_baseColorFactor;
+    }
+}
