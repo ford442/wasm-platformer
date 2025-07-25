@@ -74,8 +74,7 @@ export class FilamentRenderer {
         const response = await fetch(url);
         const image = await createImageBitmap(await response.blob());
         
-        // The numeric value 0x1 corresponds to TextureUsage.COLOR_ATTACHMENT and avoids the const enum error.
-        const usage = 0x1; 
+        const usage = 0x1; // Corresponds to TextureUsage.COLOR_ATTACHMENT
 
         const texture = new Filament.Texture$Builder()
             .width(image.width)
@@ -121,9 +120,9 @@ export class FilamentRenderer {
     }
 
     public draw(renderData: RenderData) {
-        // Correctly destroy entities via the EntityManager singleton
+        // Destroy entities using the main engine instance
         for (const entity of this.entities) {
-            EntityManager.get().destroy(entity);
+            this.engine.destroy(entity);
         }
         this.entities = [];
 
@@ -143,7 +142,6 @@ export class FilamentRenderer {
             const entity = EntityManager.get().create();
             this.entities.push(entity);
             
-            // RenderableManager$Builder constructor takes no arguments
             new Filament.RenderableManager$Builder()
                 .boundingBox({ center: [0, 0, 0], halfExtent: [0.5, 0.5, 0.02] })
                 .material(0, materialInstance)
@@ -161,7 +159,6 @@ export class FilamentRenderer {
         }
 
         if (this.renderer.beginFrame(this.swapChain)) {
-            // The renderer.render() call was missing its second argument
             this.renderer.render(this.swapChain, this.view);
             this.renderer.endFrame();
         }
