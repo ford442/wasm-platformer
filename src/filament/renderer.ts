@@ -1,5 +1,5 @@
 // src/filament/renderer.ts
-import Filament from "filament"; // Simplified, more robust import
+import Filament from "filament";
 import { mat4 } from 'gl-matrix';
 
 // This is an alias for the expected buffer type.
@@ -13,7 +13,6 @@ const RENDER_TYPE_PLAYER = 0;
 
 export class FilamentRenderer {
     private canvas: HTMLCanvasElement;
-    // All types are now prefixed with Filament.
     private engine!: Filament.Engine;
     private scene!: Filament.Scene;
     private view!: Filament.View;
@@ -35,39 +34,43 @@ export class FilamentRenderer {
         this.canvas = canvas;
     }
 
+    // This function is now wrapped in a Promise to handle Filament's initialization callback.
     async initialize() {
-        const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-        await Filament.init([`${assetPath}/filament.wasm`]);
+        return new Promise<void>((resolve) => {
+            const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+            Filament.init([`${assetPath}/filament.wasm`], async () => {
+                // This code runs ONLY after Filament is fully loaded and ready.
+                this.engine = Filament.Engine.create(this.canvas);
 
-        // All static access is now prefixed with Filament.
-        this.engine = Filament.Engine.create(this.canvas);
-/*   
-        this.scene = this.engine.createScene();
-        this.swapChain = this.engine.createSwapChain();
-     
-        this.renderer = this.engine.createRenderer();
-        this.view = this.engine.createView();
-        this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
+                this.scene = this.engine.createScene();
+                this.swapChain = this.engine.createSwapChain();
+                this.renderer = this.engine.createRenderer();
+                this.view = this.engine.createView();
+                this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
 
-        const light = Filament.EntityManager.get().create();
-        
-        new Filament.LightManager$Builder()
-            .color([0.7, 0.7, 0.7])
-            .intensity(50000.0)
-            .direction([0, -1, 0])
-            .castShadows(false)
-            .build(this.engine, light);
-        this.scene.addEntity(light);
+                const light = Filament.EntityManager.get().create();
+                new Filament.LightManager$Builder(Filament.LightManager$Type.SUN)
+                    .color([0.7, 0.7, 0.7])
+                    .intensity(50000.0)
+                    .direction([0, -1, 0])
+                    .castShadows(false)
+                    .build(this.engine, light);
+                this.scene.addEntity(light);
 
-        this.view.setCamera(this.camera);
-        this.view.setScene(this.scene);
+                this.view.setCamera(this.camera);
+                this.view.setScene(this.scene);
 
-        this.resize();
-        window.addEventListener('resize', () => this.resize(), false);
+                this.resize();
+                window.addEventListener('resize', () => this.resize(), false);
 
-        await this.loadAssets();
-        this.createQuadGeometry();
-*/
+                // Now we load our game assets.
+                await this.loadAssets();
+                this.createQuadGeometry();
+                
+                // Resolve the promise to signal that initialization is complete.
+                resolve();
+            });
+        });
     }
 
     private async loadAssets() {
