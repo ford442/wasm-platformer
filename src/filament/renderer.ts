@@ -49,7 +49,7 @@ export class FilamentRenderer {
         this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
 
         const light = Filament.EntityManager.get().create();
-        
+        /*
         new Filament.LightManager$Builder()
             .color([0.7, 0.7, 0.7])
             .intensity(50000.0)
@@ -57,7 +57,7 @@ export class FilamentRenderer {
             .castShadows(false)
             .build(this.engine, light);
         this.scene.addEntity(light);
-
+*/
         this.view.setCamera(this.camera);
         this.view.setScene(this.scene);
 
