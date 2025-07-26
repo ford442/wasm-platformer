@@ -15,7 +15,7 @@ Game::Game() {
 
 
 
-    platforms.push_back({ {-4.0f, -0.8f}, {2.0f, 0.2f} });
+    platforms.push_back({ {-2.25f, -0.8f}, {2.0f, 0.2f} });
 
     
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
