@@ -3,9 +3,9 @@
 #include <algorithm>
 
 Game::Game() {
-    playerPosition = {0.0f, 0.5f};
+    playerPosition = {0.0f, 0.25f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.1f, 0.3f};
+    playerSize = {0.3f, 0.6f};
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
