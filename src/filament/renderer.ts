@@ -120,10 +120,11 @@ export class FilamentRenderer {
     }
 
     public draw(renderData: RenderData) {
-        // Correctly destroy the entity using the static Engine.destroy method with a single argument
+        // Remove the entities from the scene, but do not manually destroy them.
         for (const entity of this.entities) {
-            EntityManager.get().destroy(entity);
+            this.scene.remove(entity);
         }
+        // Clear our local array. The garbage collector will handle the JS objects.
         this.entities = [];
 
         const renderableView = new DataView(renderData.buffer);
