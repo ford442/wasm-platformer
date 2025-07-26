@@ -50,7 +50,8 @@ export class FilamentRenderer {
         // A basic light is needed for anything to be visible.
         const light = EntityManager.get().create();
         // Corrected: Pass the light type directly to the constructor.
-        new Filament.LightManager$Builder(Filament.LightManager$Type.SUN)
+        new Filament.LightManager$Builder()
+            .lightType(Filament.LightManager$Type.SUN)
             .color([0.7, 0.7, 0.7])
             .intensity(50000.0)
             .direction([0, -1, 0])
