@@ -49,7 +49,7 @@ export class FilamentRenderer {
                 this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
 
                 const light = Filament.EntityManager.get().create();
-                new Filament.LightManager$Builder(Filament.LightManager$Type.SUN)
+                new Filament.LightManager$Builder()
                     .color([0.7, 0.7, 0.7])
                     .intensity(50000.0)
                     .direction([0, -1, 0])
