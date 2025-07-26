@@ -41,10 +41,10 @@ export class FilamentRenderer {
 
         // All static access is now prefixed with Filament.
         this.engine = Filament.Engine.create(this.canvas);
-
+/*   
         this.scene = this.engine.createScene();
         this.swapChain = this.engine.createSwapChain();
-/*        
+     
         this.renderer = this.engine.createRenderer();
         this.view = this.engine.createView();
         this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
