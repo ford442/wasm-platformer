@@ -38,7 +38,7 @@ export class FilamentRenderer {
     async initialize() {
         const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
         await Filament.init([`${assetPath}/filament.wasm`]);
-
+/*
         // All static access is now prefixed with Filament.
         this.engine = Filament.Engine.create(this.canvas);
 
@@ -49,7 +49,7 @@ export class FilamentRenderer {
         this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
 
         const light = Filament.EntityManager.get().create();
-        /*
+        
         new Filament.LightManager$Builder()
             .color([0.7, 0.7, 0.7])
             .intensity(50000.0)
@@ -57,7 +57,7 @@ export class FilamentRenderer {
             .castShadows(false)
             .build(this.engine, light);
         this.scene.addEntity(light);
-*/
+
         this.view.setCamera(this.camera);
         this.view.setScene(this.scene);
 
@@ -66,6 +66,7 @@ export class FilamentRenderer {
 
         await this.loadAssets();
         this.createQuadGeometry();
+*/
     }
 
     private async loadAssets() {
