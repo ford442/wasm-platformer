@@ -2,6 +2,7 @@
 import { default as Filament, Camera, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
 import { mat4 } from 'gl-matrix';
 
+// This is an alias for the expected buffer type.
 type BufferReference = Uint8Array | Uint16Array | Float32Array;
 
 export type RenderData = {
@@ -12,18 +13,19 @@ const RENDER_TYPE_PLAYER = 0;
 
 export class FilamentRenderer {
     private canvas: HTMLCanvasElement;
-    private engine!: Engine;
-    private scene!: Scene;
-    private view!: View;
-    private camera!: Camera;
-    private swapChain!: SwapChain;
-    private renderer!: Renderer;
+    // Correctly reference all Filament types through the main 'Filament' object.
+    private engine!: Filament.Engine;
+    private scene!: Filament.Scene;
+    private view!: Filament.View;
+    private camera!: Filament.Camera;
+    private swapChain!: Filament.SwapChain;
+    private renderer!: Filament.Renderer;
 
-    private unlitMaterial!: Material;
-    private playerTexture!: Texture;
-    private platformTexture!: Texture;
-    private playerMaterialInstance!: MaterialInstance;
-    private platformMaterialInstance!: MaterialInstance;
+    private unlitMaterial!: Filament.Material;
+    private playerTexture!: Filament.Texture;
+    private platformTexture!: Filament.Texture;
+    private playerMaterialInstance!: Filament.MaterialInstance;
+    private platformMaterialInstance!: Filament.MaterialInstance;
 
     private entities: Entity[] = [];
     private quadVertexBuffer!: Filament.VertexBuffer;
@@ -37,7 +39,6 @@ export class FilamentRenderer {
         const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
         await Filament.init([`${assetPath}/filament.wasm`]);
 
-        // This is the corrected line:
         this.engine = Filament.Engine.create(this.canvas);
 
         this.scene = this.engine.createScene();
@@ -48,7 +49,9 @@ export class FilamentRenderer {
 
         // A basic light is needed for anything to be visible.
         const light = EntityManager.get().create();
-        new Filament.LightManager$Builder(Filament.LightManager$Type.SUN)
+        // Corrected: The light type is set with the .type() method, not in the constructor.
+        new Filament.LightManager$Builder()
+            .type(Filament.LightManager$Type.SUN)
             .color([0.7, 0.7, 0.7])
             .intensity(50000.0)
             .direction([0, -1, 0])
