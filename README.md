@@ -14,17 +14,22 @@ Current Status: We are setting up the initial project structure, C++ to WASM com
 How to Build and Run (Placeholder)
 
 Prerequisites:
+
 Emscripten SDKNode.js and npmTypeScript (npm install -g typescript)
 
 Build Steps:
 Clone the repository:
+
 git clone https://github.com/ford442/wasm-platformer.git
+
 cd wasm-platformer
 
-Compile the C++ code to WebAssembly: 
+Compile the C++ code to WebAssembly:
+
 emcc cpp/src/main.cpp cpp/src/Game.cpp -o public/game.js -O3 -s WASM=1 -s MODULARIZE=1 -s 'EXPORT_NAME="createGameModule"' -lembind
 
 Compile the TypeScript code:
+
 npm install
 mkdir -p public/materials
 npm run build
