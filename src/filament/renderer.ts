@@ -47,11 +47,10 @@ export class FilamentRenderer {
         this.view = this.engine.createView();
         this.camera = this.engine.createCamera(EntityManager.get().create());
 
-        // A basic light is needed for anything to be visible.
         const light = EntityManager.get().create();
-        // Corrected: Pass the light type directly to the constructor.
+        
+        // Corrected: Remove the lightType() call and let the builder use its default.
         new Filament.LightManager$Builder()
-            .type(Filament.LightManager$Type.SUN)
             .color([0.7, 0.7, 0.7])
             .intensity(50000.0)
             .direction([0, -1, 0])
@@ -135,7 +134,6 @@ export class FilamentRenderer {
     }
 
     public draw(renderData: RenderData) {
-        // Corrected: Only remove the entities from the scene. Do not call destroy.
         if (this.entities.length > 0) {
             this.scene.removeEntities(this.entities);
         }
