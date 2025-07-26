@@ -1,5 +1,5 @@
 // src/filament/renderer.ts
-import { default as Filament, Camera, Engine, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
+import { default as Filament, Camera, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
 import { mat4 } from 'gl-matrix';
 
 type BufferReference = Uint8Array | Uint16Array | Float32Array;
@@ -37,12 +37,24 @@ export class FilamentRenderer {
         const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
         await Filament.init([`${assetPath}/filament.wasm`]);
 
-        this.engine = Engine.create(this.canvas);
+        // This is the corrected line:
+        this.engine = Filament.Engine.create(this.canvas);
+
         this.scene = this.engine.createScene();
         this.swapChain = this.engine.createSwapChain();
         this.renderer = this.engine.createRenderer();
         this.view = this.engine.createView();
         this.camera = this.engine.createCamera(EntityManager.get().create());
+
+        // A basic light is needed for anything to be visible.
+        const light = EntityManager.get().create();
+        new Filament.LightManager$Builder(Filament.LightManager$Type.SUN)
+            .color([0.7, 0.7, 0.7])
+            .intensity(50000.0)
+            .direction([0, -1, 0])
+            .castShadows(false)
+            .build(this.engine, light);
+        this.scene.addEntity(light);
 
         this.view.setCamera(this.camera);
         this.view.setScene(this.scene);
@@ -120,17 +132,19 @@ export class FilamentRenderer {
     }
 
     public draw(renderData: RenderData) {
-        // Remove the entities from the scene, but do not manually destroy them.
-        for (const entity of this.entities) {
-            this.scene.remove(entity);
+        if (this.entities.length > 0) {
+            this.scene.removeEntities(this.entities);
+            for (const entity of this.entities) {
+               this.engine.destroy(entity);
+            }
         }
-        // Clear our local array. The garbage collector will handle the JS objects.
         this.entities = [];
 
         const renderableView = new DataView(renderData.buffer);
         const numObjects = renderableView.getUint32(0, true);
         let offset = 4;
 
+        let newEntities: Entity[] = [];
         for (let i = 0; i < numObjects; i++) {
             const type = renderableView.getFloat32(offset, true);
             const x = renderableView.getFloat32(offset + 4, true);
@@ -141,15 +155,13 @@ export class FilamentRenderer {
             
             let materialInstance = type === RENDER_TYPE_PLAYER ? this.playerMaterialInstance : this.platformMaterialInstance;
             const entity = EntityManager.get().create();
-            this.entities.push(entity);
+            newEntities.push(entity);
             
             new Filament.RenderableManager$Builder()
                 .boundingBox({ center: [0, 0, 0], halfExtent: [0.5, 0.5, 0.02] })
                 .material(0, materialInstance)
                 .geometry(0, Filament.RenderableManager$PrimitiveType.TRIANGLES, this.quadVertexBuffer, this.quadIndexBuffer)
                 .build(this.engine, entity);
-
-            this.scene.addEntity(entity);
 
             const tcm = this.engine.getTransformManager();
             const inst = tcm.getInstance(entity);
@@ -158,6 +170,11 @@ export class FilamentRenderer {
             mat4.scale(transform, transform, [w, h, 1]);
             tcm.setTransform(inst, transform as unknown as number[]);
         }
+
+        if (newEntities.length > 0) {
+            this.scene.addEntities(newEntities);
+        }
+        this.entities = newEntities;
 
         if (this.renderer.beginFrame(this.swapChain)) {
             this.renderer.render(this.swapChain, this.view);
