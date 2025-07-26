@@ -57,10 +57,10 @@ export class FilamentRenderer {
             .castShadows(false)
             .build(this.engine, light);
         this.scene.addEntity(light);
-
+/*
         this.view.setCamera(this.camera);
         this.view.setScene(this.scene);
-/*
+
         this.resize();
         window.addEventListener('resize', () => this.resize(), false);
 
