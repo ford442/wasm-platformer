@@ -1,5 +1,4 @@
 import React from 'react';
-// FIX: Update the import path to point to the components directory.
 import GameCanvas from './components/GameCanvas';
 
 const App = () => {
