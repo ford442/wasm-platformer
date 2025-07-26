@@ -13,6 +13,11 @@ Game::Game() {
     canJump = true;
     soundCallback = emscripten::val::null(); // Initialize callback to null
 
+
+
+    platforms.push_back({ {-4.0f, -0.8f}, {2.0f, 0.2f} });
+
+    
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
