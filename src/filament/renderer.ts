@@ -35,7 +35,7 @@ export class FilamentRenderer {
 
     async initialize() {
         const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-        await Filament.init([`${assetPath}/filament-wasm.wasm`, `${assetPath}/ibl.ktx`]);
+        await Filament.init([`${assetPath}/filament-wasm.wasm`]);
 
         this.engine = Engine.create(this.canvas);
         this.scene = this.engine.createScene();
