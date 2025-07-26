@@ -1,5 +1,5 @@
 // src/filament/renderer.ts
-import { default as Filament, Camera, Entity, EntityManager, Material, MaterialInstance, Renderer, Scene, SwapChain, Texture, TextureSampler, TransformManager, View } from "filament";
+import Filament from "filament"; // Simplified, more robust import
 import { mat4 } from 'gl-matrix';
 
 // This is an alias for the expected buffer type.
@@ -13,7 +13,7 @@ const RENDER_TYPE_PLAYER = 0;
 
 export class FilamentRenderer {
     private canvas: HTMLCanvasElement;
-    // Correctly reference all Filament types through the main 'Filament' object.
+    // All types are now prefixed with Filament.
     private engine!: Filament.Engine;
     private scene!: Filament.Scene;
     private view!: Filament.View;
@@ -27,7 +27,7 @@ export class FilamentRenderer {
     private playerMaterialInstance!: Filament.MaterialInstance;
     private platformMaterialInstance!: Filament.MaterialInstance;
 
-    private entities: Entity[] = [];
+    private entities: Filament.Entity[] = [];
     private quadVertexBuffer!: Filament.VertexBuffer;
     private quadIndexBuffer!: Filament.IndexBuffer;
 
@@ -39,18 +39,18 @@ export class FilamentRenderer {
         const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
         await Filament.init([`${assetPath}/filament.wasm`]);
 
+        // All static access is now prefixed with Filament.
         this.engine = Filament.Engine.create(this.canvas);
 
         this.scene = this.engine.createScene();
         this.swapChain = this.engine.createSwapChain();
         this.renderer = this.engine.createRenderer();
         this.view = this.engine.createView();
-        this.camera = this.engine.createCamera(EntityManager.get().create());
+        this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
 
-        const light = EntityManager.get().create();
+        const light = Filament.EntityManager.get().create();
         
-        // Corrected: Remove the lightType() call and let the builder use its default.
-        new Filament.LightManager$Builder()
+        new Filament.LightManager$Builder(Filament.LightManager$Type.SUN)
             .color([0.7, 0.7, 0.7])
             .intensity(50000.0)
             .direction([0, -1, 0])
@@ -78,13 +78,13 @@ export class FilamentRenderer {
         this.playerMaterialInstance = this.unlitMaterial.createInstance();
         this.platformMaterialInstance = this.unlitMaterial.createInstance();
 
-        const sampler = new TextureSampler(Filament.MinFilter.NEAREST, Filament.MagFilter.NEAREST, Filament.WrapMode.CLAMP_TO_EDGE);
+        const sampler = new Filament.TextureSampler(Filament.MinFilter.NEAREST, Filament.MagFilter.NEAREST, Filament.WrapMode.CLAMP_TO_EDGE);
         
         this.playerMaterialInstance.setTextureParameter('baseColorMap', this.playerTexture, sampler);
         this.platformMaterialInstance.setTextureParameter('baseColorMap', this.platformTexture, sampler);
     }
 
-    private async loadTexture(url: string): Promise<Texture> {
+    private async loadTexture(url: string): Promise<Filament.Texture> {
         const response = await fetch(url);
         const image = await createImageBitmap(await response.blob());
         
@@ -143,7 +143,7 @@ export class FilamentRenderer {
         const numObjects = renderableView.getUint32(0, true);
         let offset = 4;
 
-        let newEntities: Entity[] = [];
+        let newEntities: Filament.Entity[] = [];
         for (let i = 0; i < numObjects; i++) {
             const type = renderableView.getFloat32(offset, true);
             const x = renderableView.getFloat32(offset + 4, true);
@@ -153,7 +153,7 @@ export class FilamentRenderer {
             offset += 36;
             
             let materialInstance = type === RENDER_TYPE_PLAYER ? this.playerMaterialInstance : this.platformMaterialInstance;
-            const entity = EntityManager.get().create();
+            const entity = Filament.EntityManager.get().create();
             newEntities.push(entity);
             
             new Filament.RenderableManager$Builder()
