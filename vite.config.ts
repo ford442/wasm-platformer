@@ -11,7 +11,7 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: 'node_modules/filament/filament-wasm.*',
+          src: 'node_modules/filament/filament.*',
           dest: '.'
         }
       ]
