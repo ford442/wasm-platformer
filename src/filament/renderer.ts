@@ -122,7 +122,7 @@ export class FilamentRenderer {
     public draw(renderData: RenderData) {
         // Correctly destroy the entity using the static Engine.destroy method with a single argument
         for (const entity of this.entities) {
-            this.engine.destroy(entity);
+            Filament.Engine.destroy(this.engine, entity);
         }
         this.entities = [];
 
