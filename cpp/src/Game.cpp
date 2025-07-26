@@ -5,7 +5,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.25f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.3f, 0.6f};
+    playerSize = {0.5f, 0.8f};
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
@@ -13,10 +13,8 @@ Game::Game() {
     canJump = true;
     soundCallback = emscripten::val::null(); // Initialize callback to null
 
-
       // ground
     platforms.push_back({ {-12.25f, -2.0f}, {110.0f, 0.2f} });
-
     
     platforms.push_back({ {-6.25f, -1.2f}, {1.0f, 0.2f} });
     platforms.push_back({ {-4.25f, -0.8f}, {1.0f, 0.2f} });
@@ -24,7 +22,6 @@ Game::Game() {
     platforms.push_back({ {-2.25f, -0.8f}, {1.0f, 0.2f} });
     platforms.push_back({ {-3.0, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {-5.25f, -0.4f}, {1.70f, 0.2f} });
-
     
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
@@ -32,12 +29,10 @@ Game::Game() {
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
 }
 
-// New: Implementation for setting the callback from JS
 void Game::setSoundCallback(emscripten::val callback) {
     soundCallback = callback;
 }
 
-// New: A helper to call the JavaScript function if it exists
 void Game::playSound(const std::string& soundName) {
     if (!soundCallback.isNull()) {
         soundCallback(soundName);
