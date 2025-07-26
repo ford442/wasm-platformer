@@ -44,10 +44,11 @@ export class FilamentRenderer {
 
         this.scene = this.engine.createScene();
         this.swapChain = this.engine.createSwapChain();
+/*        
         this.renderer = this.engine.createRenderer();
         this.view = this.engine.createView();
         this.camera = this.engine.createCamera(Filament.EntityManager.get().create());
-/*
+
         const light = Filament.EntityManager.get().create();
         
         new Filament.LightManager$Builder()
