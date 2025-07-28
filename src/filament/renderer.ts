@@ -37,10 +37,14 @@ export class FilamentRenderer {
     // This function is now wrapped in a Promise to handle Filament's initialization callback.
     async initialize() {
         return new Promise<void>((resolve) => {
-            const assetPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-            Filament.init([`${assetPath}/filament.wasm`], async () => {
-                // This code runs ONLY after Filament is fully loaded and ready.
-                this.engine = Filament.Engine.create(this.canvas);
+            Filament.init(['/filament.wasm'], () => {
+                this.engine = Filament.Engine.create(this.canvas, {
+                    // Tell Filament where to find the backend files.
+                    // This is relative to the page.
+                    backend: "webgl2",
+                    // This is the path to the zbin file, also relative to the page
+                    zbin: "/filament.zbin",
+                });
 
                 this.scene = this.engine.createScene();
                 this.swapChain = this.engine.createSwapChain();
