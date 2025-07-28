@@ -37,7 +37,7 @@ export class FilamentRenderer {
     // This function is now wrapped in a Promise to handle Filament's initialization callback.
     async initialize() {
         return new Promise<void>((resolve) => {
-            Filament.init(['/filament.wasm'], () => {
+            Filament.init(['/filament.wasm'], async () => {
                 this.engine = Filament.Engine.create(this.canvas, {
                     // Tell Filament where to find the backend files.
                     // This is relative to the page.
