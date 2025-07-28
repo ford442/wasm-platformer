@@ -1,8 +1,6 @@
 #include "Game.hpp"
+#include <cmath>
 #include <algorithm>
-#include "json.hpp" // Assuming you use a JSON library like nlohmann/json
-
-using json = nlohmann::json;
 
 Game::Game() {
     playerPosition = {0.0f, 0.25f};
@@ -62,7 +60,7 @@ void Game::handleInput(const InputState& input) {
     }
 }
 
-void Game::update(const std::string& input, float dt) {
+void Game::update(float deltaTime) {
     wasGrounded = isGrounded; // Store the state from the previous frame
     isGrounded = false;
     float groundCheckDistance = 0.05f;
@@ -128,44 +126,6 @@ void Game::update(const std::string& input, float dt) {
         playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
     }
     cameraPosition.x = playerPosition.x;
-    for (auto& enemy : enemies) {
-        enemy.box.x += enemy.vx * dt;
-
-        // Simple patrol AI: reverse direction at platform edges
-        bool on_platform = false;
-        for (const auto& p : platforms) {
-            // Check if enemy is standing on platform p
-            bool is_above = enemy.box.y + enemy.box.h >= p.y && enemy.box.y + enemy.box.h <= p.y + 20;
-            bool is_horizontally_aligned = enemy.box.x + enemy.box.w > p.x && enemy.box.x < p.x + p.w;
-
-            if (is_above && is_horizontally_aligned) {
-                on_platform = true;
-                // Check if the enemy is at the edge of its current platform
-                if (enemy.box.x <= p.x || enemy.box.x + enemy.box.w >= p.x + p.w) {
-                    enemy.vx = -enemy.vx; // Reverse direction
-                }
-                break;
-            }
-        }
-        if (!on_platform) {
-            // Optional: make enemy fall if not on a platform, or just reverse
-            // For simplicity, we'll just reverse if it walks off.
-            // enemy.vx = -enemy.vx;
-        }
-
-        // Check for collision with player
-        if (checkCollision(player.box, enemy.box)) {
-            // For now, just reset the level. You could add health later.
-            gameState.level_transition_to = "self"; // Use a keyword to signal reset
-        }
-    }
-
-    // NEW: Check for player collision with doors
-    for (const auto& door : doors) {
-        if (checkCollision(player.box, door.box)) {
-            gameState.level_transition_to = door.leads_to;
-        }
-    }
 }
 
 bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
@@ -176,62 +136,6 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
     return collisionX && collisionY;
 }
 
-void Game::loadLevel(const std::string& levelData) {
-    platforms.clear();
-    enemies.clear(); // Clear old enemies
-    scenery.clear(); // Clear old scenery
-    doors.clear();   // Clear old doors
-
-    auto data = json::parse(levelData);
-
-    // Load platforms (as before)
-    for (const auto& p : data["platforms"]) {
-        platforms.push_back({p["x"], p["y"], p["w"], p["h"]});
-    }
-
-    // NEW: Load scenery
-    if (data.contains("scenery")) {
-        for (const auto& s : data["scenery"]) {
-            scenery.push_back({ {s["x"], s["y"], 32, 32}, s["type"] });
-        }
-    }
-
-    // NEW: Load enemies
-    if (data.contains("enemies")) {
-        for (const auto& e : data["enemies"]) {
-            enemies.push_back({ {e["x"], e["y"], 32, 44}, 50.0f }); // Give a default speed
-        }
-    }
-    
-    // NEW: Load doors
-    if (data.contains("doors")) {
-        for (const auto& d : data["doors"]) {
-            doors.push_back({ {d["x"], d["y"], 64, 64}, d["leads_to"] });
-        }
-    }
-
-
-    // Reset player position
-    player.box.x = data["player_start"]["x"];
-    player.box.y = data["player_start"]["y"];
-    player.vx = 0;
-    player.vy = 0;
-    player.on_ground = false;
-
-    // Reset game state
-    gameState.level_transition_to = ""; // Ensure transition flag is cleared
-}
-const std::vector<Enemy>& Game::getEnemies() const {
-    return enemies;
-}
-
-const std::vector<Scenery>& Game::getScenery() const {
-    return scenery;
-}
-
-const std::vector<Door>& Game::getDoors() const {
-    return doors;
-}
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
 Vec2 Game::getPlayerSize() const { return playerSize; }
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
