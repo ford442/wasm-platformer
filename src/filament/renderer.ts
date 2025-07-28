@@ -1,5 +1,5 @@
 // src/filament/renderer.ts
-import "filament";
+import Filament from "filament";
 import { mat4 } from 'gl-matrix';
 
 // This is an alias for the expected buffer type.
