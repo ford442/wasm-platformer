@@ -13,42 +13,52 @@ struct AnimationState {
     int currentFrame;
     bool facingLeft;
 };
+struct Enemy {
+    Box box;
+    float vx;
+};
 
+// NEW: Define a struct for a scenery item
+struct Scenery {
+    Box box;
+    int type; // e.g., 0 for flower, 1 for bush
+};
+
+// NEW: Define a struct for a door
+struct Door {
+    Box box;
+    std::string leads_to; // The name of the map this door leads to
+};
 class Game {
 public:
-    Game();
-    void update(float deltaTime);
-    void handleInput(const InputState& input);
-    
-    // New: A function to allow JavaScript to set a callback
-    void setSoundCallback(emscripten::val callback);
+    Game(int width, int height);
 
-    Vec2 getPlayerPosition() const;
-    Vec2 getPlayerSize() const;
-    Vec2 getCameraPosition() const;
-    const std::vector<Platform>& getPlatforms() const;
-    AnimationState getPlayerAnimationState() const;
+    void loadLevel(const std::string& levelData);
+    void update(const std::string& input, float dt);
+    const GameState& getGameState() const;
+    const Player& getPlayer() const;
+    const std::vector<Box>& getPlatforms() const;
+    
+    // NEW: Add getters for our new entities
+    const std::vector<Enemy>& getEnemies() const;
+    const std::vector<Scenery>& getScenery() const;
+    const std::vector<Door>& getDoors() const;
+
 
 private:
-    void playSound(const std::string& soundName);
-    bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
+    void resolvePlatformCollisions(Player& player, const Box& platform);
 
-    Vec2 playerPosition;
-    Vec2 playerVelocity;
-    Vec2 playerSize;
-    Vec2 cameraPosition;
-    AnimationState playerAnimation;
-    float animationTimer = 0.0f;
-    std::vector<Platform> platforms;
-    const float gravity = -9.8f * 2.5f;
-    const float moveSpeed = 2.0f;
-    const float jumpStrength = 6.0f;
-    bool isGrounded = false;
-    bool wasGrounded = false; // New: To track state changes for landing sound
-    bool canJump = true;
-    
-    // New: Stores the JavaScript callback function
-    emscripten::val soundCallback;
+    int screenWidth;
+    int screenHeight;
+    Player player;
+    std::vector<Box> platforms;
+
+    // NEW: Add vectors to store the new entities
+    std::vector<Enemy> enemies;
+    std::vector<Scenery> scenery;
+    std::vector<Door> doors;
+
+    GameState gameState;
 };
 
 #endif // GAME_HPP
