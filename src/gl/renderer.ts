@@ -1,4 +1,11 @@
 import type { Vec2, Platform, AnimationState } from '../wasm/loader';
+import platformTextureUrl from './platform.png';
+import playerTextureUrl from './wazzy_spritesheet.png';
+import backgroundTextureUrl from './background.png';
+// NEW: Import new asset URLs
+import enemyTextureUrl from './enemy.png';
+import flowerTextureUrl from './flower.png';
+import doorTextureUrl from './door.png';
 
 export type TextureObject = {
     texture: WebGLTexture;
@@ -13,6 +20,13 @@ const animationMap = {
 };
 
 export class Renderer {
+        private platformTexture: WebGLTexture;
+    private playerTexture: WebGLTexture;
+    // NEW: Add texture properties
+    private enemyTexture: WebGLTexture;
+    private flowerTexture: WebGLTexture;
+    private doorTexture: WebGLTexture;
+
   private gl: WebGL2RenderingContext;
   private spriteProgram: WebGLProgram;
   private spritePositionAttributeLocation: number;
@@ -146,7 +160,31 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.vertexAttribPointer(this.backgroundPositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
+    
+    public drawEnemy(box: any) {
+        this.drawTexture(box.x, box.y, box.w, box.h, this.enemyTexture);
+    }
+    
+    public drawFlower(box: any) {
+        this.drawTexture(box.x, box.y, box.w, box.h, this.flowerTexture);
+    }
+    
+    public drawDoor(box: any) {
+        this.drawTexture(box.x, box.y, box.w, box.h, this.doorTexture);
+    }
+    
+        public async init() {
+        // ... (existing init logic)
+        this.platformTexture = await this.loadTexture(platformTextureUrl);
+        this.playerTexture = await this.loadTexture(playerTextureUrl);
+        // NEW: Load the new textures
+        this.enemyTexture = await this.loadTexture(enemyTextureUrl);
+        this.flowerTexture = await this.loadTexture(flowerTextureUrl);
+        this.doorTexture = await this.loadTexture(doorTextureUrl);
 
+        this.isInitialized = true;
+    }
+    
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
