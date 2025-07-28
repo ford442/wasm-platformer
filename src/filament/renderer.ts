@@ -42,8 +42,6 @@ export class FilamentRenderer {
                     // Tell Filament where to find the backend files.
                     // This is relative to the page.
                     backend: "webgl2",
-                    // This is the path to the zbin file, also relative to the page
-                    zbin: "/filament.zbin",
                 });
 
                 this.scene = this.engine.createScene();

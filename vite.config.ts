@@ -13,10 +13,6 @@ export default defineConfig({
         {
           src: 'node_modules/filament/filament.wasm',
           dest: '.'
-        },
-        {
-          src: 'node_modules/filament/filament.zbin',
-          dest: '.'
         }
       ]
     })
