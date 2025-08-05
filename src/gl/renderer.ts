@@ -12,6 +12,7 @@ const animationMap = {
   jump: { row: 2, frames: 1, frameSize: { x: 64, y: 64 } },
 };
 
+
 export class Renderer {
   private gl: WebGL2RenderingContext;
   private spriteProgram: WebGLProgram;
@@ -35,6 +36,7 @@ export class Renderer {
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
   private fullScreenQuadBuffer: WebGLBuffer | null = null;
+    
   constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource: string) {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
@@ -65,6 +67,7 @@ export class Renderer {
     this.setupGeometry();
   }
 
+    
 private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type)!;
     this.gl.shaderSource(shader, source);
@@ -75,6 +78,7 @@ private compileShader(type: number, source: string): WebGLShader {
     return shader;
   }
 
+    
   private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
       const program = this.gl.createProgram()!;
       this.gl.attachShader(program, vertexShader);
@@ -86,6 +90,7 @@ private compileShader(type: number, source: string): WebGLShader {
       return program;
   }
 
+    
   public async loadTexture(url: string): Promise<TextureObject> {
     const texture = this.gl.createTexture();
     if (!texture) throw new Error("Failed to create texture");
@@ -101,6 +106,7 @@ private compileShader(type: number, source: string): WebGLShader {
     return { texture, width: image.width, height: image.height };
   }
 
+    
   private setupGeometry() {
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
     this.unitSquarePositionBuffer = this.gl.createBuffer();
@@ -116,6 +122,7 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, fullScreenPositions, this.gl.STATIC_DRAW);
   }
 
+    
   private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.spriteTextureUniformLocation, 0);
@@ -134,6 +141,7 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
+    
   private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
     this.gl.useProgram(this.backgroundProgram);
     this.gl.bindTexture(this.gl.TEXTURE_2D, backgroundTexture.texture);
@@ -147,6 +155,7 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
+    
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
@@ -174,4 +183,6 @@ private compileShader(type: number, source: string): WebGLShader {
       this.drawSprite(playerPosition, playerSize, playerTexture, { x: playerTexture.width, y: playerTexture.height }, animData.frameSize, frameCoord, playerAnim.facingLeft);
     }
   }
+
+    
 }
