@@ -2,6 +2,7 @@
 #include <cmath>
 #include <algorithm>
 
+
 Game::Game() {
     playerPosition = {0.0f, 0.25f};
     playerVelocity = {0.0f, 0.0f};
@@ -29,15 +30,18 @@ Game::Game() {
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
 }
 
+
 void Game::setSoundCallback(emscripten::val callback) {
     soundCallback = callback;
 }
+
 
 void Game::playSound(const std::string& soundName) {
     if (!soundCallback.isNull()) {
         soundCallback(soundName);
     }
 }
+
 
 void Game::handleInput(const InputState& input) {
     if (input.left) {
@@ -59,6 +63,7 @@ void Game::handleInput(const InputState& input) {
         canJump = true;
     }
 }
+
 
 void Game::update(float deltaTime) {
     wasGrounded = isGrounded; // Store the state from the previous frame
@@ -128,6 +133,7 @@ void Game::update(float deltaTime) {
     cameraPosition.x = playerPosition.x;
 }
 
+
 bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
     bool collisionX = (posA.x - sizeA.x / 2.0f < posB.x + sizeB.x / 2.0f) &&
                       (posA.x + sizeA.x / 2.0f > posB.x - sizeB.x / 2.0f);
@@ -136,8 +142,13 @@ bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB,
     return collisionX && collisionY;
 }
 
+
 Vec2 Game::getPlayerPosition() const { return playerPosition; }
+
 Vec2 Game::getPlayerSize() const { return playerSize; }
+
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
+
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
+
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
