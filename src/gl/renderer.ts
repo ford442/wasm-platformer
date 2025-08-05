@@ -36,6 +36,7 @@ export class Renderer {
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
   private fullScreenQuadBuffer: WebGLBuffer | null = null;
+
     
   constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource: string) {
     const context = canvas.getContext('webgl2');
@@ -159,12 +160,10 @@ private compileShader(type: number, source: string): WebGLShader {
   public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    if (backgroundTexture) {
-      this.drawBackground(cameraPosition, backgroundTexture);
-    }
+    if (backgroundTexture) {this.drawBackground(cameraPosition, backgroundTexture);}
     this.gl.useProgram(this.spriteProgram);
     const aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
-    const worldWidth = 10.0; // Increased world width to see more of the level
+    const worldWidth = 10.0;
     const worldHeight = worldWidth / aspectRatio;
     const projectionMatrix = [ 2.0 / worldWidth, 0, 0, 0, 0, 2.0 / worldHeight, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1 ];
     this.gl.uniformMatrix4fv(this.spriteProjectionMatrixUniformLocation, false, projectionMatrix);
