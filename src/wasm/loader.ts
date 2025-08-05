@@ -1,7 +1,11 @@
 export interface Vec2 { x: number; y: number; }
+
 export interface Platform { position: Vec2; size: Vec2; }
+
 export interface PlatformList { get(index: number): Platform; size(): number; }
+
 export interface InputState { left: boolean; right: boolean; jump: boolean; }
+
 export interface AnimationState {
   currentState: string;
   currentFrame: number;
