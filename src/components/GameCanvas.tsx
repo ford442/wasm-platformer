@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type Platform } from '../wasm/loader';
+import { P2PNetwork } from "../network"; // Import the network class
 
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
@@ -13,8 +14,11 @@ const MUSIC_URL = './background-music.mp3';
 const JUMP_SFX_URL = './jump.mp3';
 const LAND_SFX_URL = './land.mp3';
 
+interface GameCanvasProps {
+    network: P2PNetwork;
+}
 
-const GameCanvas = () => {
+export const GameCanvas: React.FC<GameCanvasProps> = ({ network }) => {
 const canvasRef = useRef<HTMLCanvasElement>(null);
 const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
@@ -49,7 +53,6 @@ useEffect(() => {
     if (!canvas) return;
     let animationFrameId = 0;
     let gameInstance: Game | null = null;
-
     
     const handleSoundEvent = (soundName: string) => {
       let sfxUrl: string | null = null;
@@ -63,7 +66,6 @@ useEffect(() => {
         sfx.play().catch(console.error);
       }
     };
-
     
     const initializeAndRun = async () => {
       try {
@@ -101,6 +103,7 @@ useEffect(() => {
           renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
           animationFrameId = requestAnimationFrame(gameLoop);
         };
+          
         animationFrameId = requestAnimationFrame(gameLoop);
       } catch (error) {
         console.error("Failed to initialize game:", error);
@@ -117,6 +120,38 @@ return () => {
     };
 }, []);
 
+ // Step 2: Add a new useEffect hook specifically for network communication.
+  useEffect(() => {
+    // This is where your game logic interacts with the network.
+
+    // A. Handle receiving data from the other player
+    network.onGameState = (state) => {
+        console.log("Received state from other player:", state);
+        // TODO: Add logic to update your game based on the received state.
+        // For example, you might have a function in your WASM module like:
+        // wasm.update_other_player(state.x, state.y);
+    };
+
+    // B. Send your player's state periodically
+    // This would ideally be integrated into your main game loop.
+    const gameLoopInterval = window.setInterval(() => {
+        // TODO: Get the actual state of your local player from the WASM module.
+        // const myPlayerState = wasm.get_my_player_state();
+        const myPlayerState = {
+            x: Math.random() * 100,
+            y: 50,
+        };
+        network.sendGameState(myPlayerState);
+    }, 100); // Send state 10 times per second
+
+    // Clean up the interval when the component is unmounted
+    return () => {
+        clearInterval(gameLoopInterval);
+    };
+
+  }, [network]); // This effect depends on the network object
+
+    
 const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
     borderRadius: '8px', boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
