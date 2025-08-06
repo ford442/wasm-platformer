@@ -1,36 +1,89 @@
-import React from 'react';
-import GameCanvas from './components/GameCanvas';
+// src/App.tsx
 
-const App = () => {
-  const appStyle: React.CSSProperties = {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '2rem', gap: '1.5rem',
-    width: '100%', height: '100vh', boxSizing: 'border-box'
-  };
-  const headerStyle: React.CSSProperties = {
-    fontFamily: 'var(--primary-font)', fontSize: '3rem',
-    color: 'var(--primary-color)', textShadow: '0 0 10px var(--primary-color)',
-    margin: 0,
-  };
-  const gameContainerStyle: React.CSSProperties = {
-    width: '100%', maxWidth: '1280px', aspectRatio: '16 / 9',
-    display: 'flex', justifyContent: 'center', alignItems: 'center',
-  };
-  const footerStyle: React.CSSProperties = {
-    fontFamily: 'var(--primary-font)', fontSize: '1rem',
-    color: 'var(--text-color)', opacity: 0.7
-  };
+import React, { useState, useEffect, useMemo } from 'react';
+import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { db } from './firebase-config';
+import { P2PNetwork } from './network';
+import { GameCanvas } from './GameCanvas'; // We will create this next
 
-  return (
-    <div style={appStyle}>
-      <h1 style={headerStyle}>WASM-Venture</h1>
-      <div style={gameContainerStyle}>
-        <GameCanvas />
-      </div>
-      <p style={footerStyle}>Powered by C++, WebAssembly, React, and WebGL2</p>
-    </div>
-  );
-};
+function App() {
+    const [games, setGames] = useState<QueryDocumentSnapshot<DocumentData>[]>([]);
+    const [gameId, setGameId] = useState<string | null>(null);
+    const [gameName, setGameName] = useState('');
+    const [isConnected, setIsConnected] = useState(false);
 
-// FIX: Ensure this component has a default export so main.tsx can import it.
+    // Create a single, stable instance of the network class
+    const network = useMemo(() => new P2PNetwork(), []);
+
+    // Effect to listen for available games from Firestore
+    useEffect(() => {
+        const gamesCollection = collection(db, 'games');
+        const q = query(collection(db, "games"), where("status", "==", "waiting"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setGames(snapshot.docs);
+        });
+        return () => unsubscribe(); // Clean up listener on component unmount
+    }, []);
+
+    // Effect to handle network events
+    useEffect(() => {
+        network.onConnectionStateChange = (state) => {
+            setIsConnected(state === 'connected');
+        };
+        // Clean up on component unmount
+        return () => network.cleanup();
+    }, [network]);
+
+    const handleCreateGame = async () => {
+        if (gameName) {
+            const newGameId = await network.createGame(gameName);
+            setGameId(newGameId);
+        }
+    };
+
+    const handleJoinGame = async (id: string) => {
+        setGameId(id);
+        await network.joinGame(id);
+    };
+
+    // The Lobby View
+    if (!gameId) {
+        return (
+            <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+                <h1>WASM Platformer Lobby</h1>
+                <div>
+                    <input
+                        type="text"
+                        placeholder="Enter Game Name"
+                        value={gameName}
+                        onChange={(e) => setGameName(e.target.value)}
+                        style={{ padding: '8px', marginRight: '10px' }}
+                    />
+                    <button onClick={handleCreateGame} style={{ padding: '8px 12px' }}>Create Game</button>
+                </div>
+                <hr style={{ margin: '20px 0' }} />
+                <h2>Available Games</h2>
+                <ul>
+                    {games.length === 0 && <p>No available games. Create one!</p>}
+                    {games.map((game) => (
+                        <li key={game.id} style={{ marginBottom: '10px' }}>
+                            {game.data().name}
+                            <button onClick={() => handleJoinGame(game.id)} style={{ marginLeft: '10px' }}>Join</button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
+    }
+    
+    // The Game View
+    return (
+        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+            <h1>Playing Game: {gameId}</h1>
+            <p>Status: {isConnected ? '✅ Connected' : '⌛ Connecting...'}</p>
+            {isConnected && <GameCanvas network={network} />}
+        </div>
+    );
+}
+
 export default App;
