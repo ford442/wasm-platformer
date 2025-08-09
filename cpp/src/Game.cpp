@@ -125,7 +125,7 @@ void Game::update(float deltaTime) {
         animationTimer = 0.0f;
     }
     animationTimer += deltaTime;
-    float frameDuration = 0.1f;
+    float frameDuration = 0.025f;
     while (animationTimer >= frameDuration) {
         animationTimer -= frameDuration;
         playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
