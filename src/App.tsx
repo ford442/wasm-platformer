@@ -32,5 +32,4 @@ const App = () => {
   );
 };
 
-// FIX: Ensure this component has a default export so main.tsx can import it.
 export default App;
