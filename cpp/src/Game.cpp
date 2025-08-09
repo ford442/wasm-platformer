@@ -4,7 +4,7 @@
 
 
 Game::Game() {
-    playerPosition = {0.0f, 0.25f};
+    playerPosition = {0.0f, -1.5f};
     playerVelocity = {0.0f, 0.0f};
     playerSize = {0.5f, 0.8f};
     cameraPosition = {0.0f, 0.0f};

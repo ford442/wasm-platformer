@@ -1,11 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
 import { loadWasmModule, type Game, type InputState, type Platform } from '../wasm/loader';
+import { AudioManager } from '../audio/AudioManager';
 
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
 import fragmentShaderSource from '../gl/shaders/tex.frag.glsl?raw';
 import backgroundFragmentSource from '../gl/shaders/background.frag.glsl?raw';
 import backgroundVertexSource from '../gl/shaders/background.vert.glsl?raw';
+
 const WAZZY_SPRITESHEET_URL = './wazzy_spritesheet.png';
 const PLATFORM_TEXTURE_URL = './platform.png';
 const BACKGROUND_URL = './background.png';
@@ -13,23 +15,23 @@ const MUSIC_URL = './background-music.mp3';
 const JUMP_SFX_URL = './jump.mp3';
 const LAND_SFX_URL = './land.mp3';
 
-
 const GameCanvas = () => {
-const canvasRef = useRef<HTMLCanvasElement>(null);
-const keysRef = useRef<Record<string, boolean>>({
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
-});
-  
-const audioRef = useRef(new Audio(MUSIC_URL));
+  });
+  const audioManagerRef = useRef<AudioManager | null>(null);
+  const [volume, setVolume] = useState(0.5);
 
-    
-useEffect(() => {
-    const audio = audioRef.current;
-    audio.loop = true;
-    
+  useEffect(() => {
+    audioManagerRef.current = new AudioManager();
+    const audioManager = audioManagerRef.current;
+    audioManager.setVolume(volume);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code in keysRef.current) keysRef.current[e.code] = true;
-      if (audio.paused) audio.play().catch(console.error);
+      audioManager.resumeContext();
+      audioManager.playMusic();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code in keysRef.current) keysRef.current[e.code] = false;
@@ -39,34 +41,29 @@ useEffect(() => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      audioManager.stopMusic();
     };
-    
-}, []);
+  }, [volume]);
 
-    
-useEffect(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let animationFrameId = 0;
     let gameInstance: Game | null = null;
+    const audioManager = audioManagerRef.current!;
 
-    
     const handleSoundEvent = (soundName: string) => {
-      let sfxUrl: string | null = null;
-      if (soundName === 'jump') {
-        sfxUrl = JUMP_SFX_URL;
-      } else if (soundName === 'land') {
-        sfxUrl = LAND_SFX_URL;
-      }
-      if (sfxUrl) {
-        const sfx = new Audio(sfxUrl);
-        sfx.play().catch(console.error);
-      }
+      audioManager.playSfx(soundName);
     };
 
-    
     const initializeAndRun = async () => {
       try {
+        await Promise.all([
+          audioManager.loadSfx('jump', JUMP_SFX_URL),
+          audioManager.loadSfx('land', LAND_SFX_URL),
+          audioManager.loadMusic(MUSIC_URL)
+        ]);
+
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         gameInstance.setSoundCallback(handleSoundEvent);
@@ -77,7 +74,7 @@ useEffect(() => {
           renderer.loadTexture(BACKGROUND_URL)
         ]);
         let lastTime = performance.now();
-          
+
         const gameLoop = (timestamp: number) => {
           if (!gameInstance) return;
           const deltaTime = (timestamp - lastTime) / 1000.0;
@@ -105,27 +102,45 @@ useEffect(() => {
       } catch (error) {
         console.error("Failed to initialize game:", error);
       }
-};
+    };
 
-    
-initializeAndRun();
-  
-return () => {
+    initializeAndRun();
+
+    return () => {
       cancelAnimationFrame(animationFrameId);
       if (gameInstance) gameInstance.delete();
-      audioRef.current.pause();
     };
-}, []);
+  }, []);
 
-const canvasStyle: React.CSSProperties = {
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioManagerRef.current) {
+      audioManagerRef.current.setVolume(newVolume);
+    }
+  };
+
+  const canvasStyle: React.CSSProperties = {
     width: '100%', height: '100%', backgroundColor: '#000',
     borderRadius: '8px', boxShadow: '0 0 20px rgba(0, 170, 255, 0.5)',
     border: '2px solid var(--primary-color)'
   };
-    
-return <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />;
-    
-};
 
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />
+      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={volume}
+          onChange={handleVolumeChange}
+        />
+      </div>
+    </div>
+  );
+};
 
 export default GameCanvas;
