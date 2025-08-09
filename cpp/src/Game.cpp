@@ -6,7 +6,7 @@
 Game::Game() {
     playerPosition = {0.0f, 0.25f};
     playerVelocity = {0.0f, 0.0f};
-    playerSize = {0.5f, 0.8f};
+    playerSize = {0.75f, 0.75f};
     cameraPosition = {0.0f, 0.0f};
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
