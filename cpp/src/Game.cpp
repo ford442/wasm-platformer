@@ -28,6 +28,32 @@ Game::Game() {
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
+
+    
+    // A series of ascending platforms
+    platforms.push_back({ {8.0f, 0.2f}, {1.0f, 0.2f} });
+    platforms.push_back({ {10.0f, 0.6f}, {1.0f, 0.2f} });
+    platforms.push_back({ {12.0f, 1.0f}, {1.0f, 0.2f} });
+
+    // Floating platforms for a gap jump
+    platforms.push_back({ {15.0f, 1.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {18.0f, 1.5f}, {1.0f, 0.2f} });
+
+    // A higher platform to test a vertical jump
+    platforms.push_back({ {20.0f, 2.5f}, {2.0f, 0.2f} });
+
+    // A long descending ramp
+    platforms.push_back({ {23.0f, 1.5f}, {2.0f, 0.2f} });
+    platforms.push_back({ {26.0f, 0.5f}, {2.0f, 0.2f} });
+    platforms.push_back({ {29.0f, -0.5f}, {3.0f, 0.2f} });
+
+    // Platforms with varied sizes and positions
+    platforms.push_back({ {33.0f, -0.2f}, {1.0f, 0.5f} });
+    platforms.push_back({ {35.0f, 0.8f}, {2.5f, 0.2f} });
+    platforms.push_back({ {38.0f, 1.5f}, {1.0f, 0.2f} });
+
+    // A large, high platform
+    platforms.push_back({ {42.0f, 2.0f}, {4.0f, 0.3f} });
 }
 
 
