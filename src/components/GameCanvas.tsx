@@ -95,7 +95,10 @@ const GameCanvas = () => {
           for (let i = 0; i < wasmPlatforms.size(); i++) {
             jsPlatforms.push(wasmPlatforms.get(i));
           }
-          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
+          // Apply a visual offset to the player position to fix the hovering issue.
+          // The sprite has some empty space at the bottom, so we shift it down slightly.
+          const visualPlayerPos = { x: playerPosition.x, y: playerPosition.y - 0.1 };
+          renderer.drawScene(cameraPosition, visualPlayerPos, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         animationFrameId = requestAnimationFrame(gameLoop);

@@ -54,6 +54,19 @@ Game::Game() {
 
     // A large, high platform
     platforms.push_back({ {42.0f, 2.0f}, {4.0f, 0.3f} });
+
+    // Vertical climb section
+    platforms.push_back({ {46.0f, 2.0f}, {2.0f, 0.2f} });
+    platforms.push_back({ {47.5f, 3.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {46.0f, 4.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {47.5f, 5.0f}, {1.5f, 0.2f} });
+
+    // Long jumps
+    platforms.push_back({ {49.5f, 5.5f}, {1.5f, 0.2f} });
+    platforms.push_back({ {52.0f, 6.0f}, {2.0f, 0.2f} });
+
+    // Final high platform
+    platforms.push_back({ {55.0f, 7.0f}, {2.0f, 0.2f} });
 }
 
 
