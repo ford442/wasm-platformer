@@ -29,9 +29,22 @@ export interface GameModule {
 }
 
 export const loadWasmModule = async (): Promise<GameModule> => {
-  const factory = (window as any).createGameModule;
-  if (!factory) {
-    throw new Error("WASM module factory not found on window. Did you include game.js in your index.html?");
+  if ((window as any).createGameModule) {
+    return await (window as any).createGameModule() as GameModule;
   }
-  return await factory() as GameModule;
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/game.js';
+    script.onload = async () => {
+      const factory = (window as any).createGameModule;
+      if (factory) {
+        resolve(await factory() as GameModule);
+      } else {
+        reject(new Error("game.js loaded but createGameModule not found on window"));
+      }
+    };
+    script.onerror = () => reject(new Error("Failed to load game.js"));
+    document.body.appendChild(script);
+  });
 };
