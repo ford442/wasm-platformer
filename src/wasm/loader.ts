@@ -35,7 +35,7 @@ export const loadWasmModule = async (): Promise<GameModule> => {
 
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/game.js';
+    script.src = 'game.js';
     script.onload = async () => {
       const factory = (window as any).createGameModule;
       if (factory) {
