@@ -15,6 +15,12 @@ const MUSIC_URL = './background-music.mp3';
 const JUMP_SFX_URL = './jump.mp3';
 const LAND_SFX_URL = './land.mp3';
 
+const ANIMATION_OFFSETS: Record<string, number> = {
+  idle: 0.1875,
+  run: 0.1875,
+  jump: 0.1875,
+};
+
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysRef = useRef<Record<string, boolean>>({
@@ -97,7 +103,9 @@ const GameCanvas = () => {
           }
           // Apply a visual offset to the player position to fix the hovering issue.
           // The sprite has some empty space at the bottom, so we shift it down slightly.
-          const visualPlayerPos = { x: playerPosition.x, y: playerPosition.y - 0.1 };
+          // We use dynamic offsets because the padding differs between animation states.
+          const offset = ANIMATION_OFFSETS[playerAnim.currentState] ?? 0.1;
+          const visualPlayerPos = { x: playerPosition.x, y: playerPosition.y - offset };
           renderer.drawScene(cameraPosition, visualPlayerPos, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
           animationFrameId = requestAnimationFrame(gameLoop);
         };
