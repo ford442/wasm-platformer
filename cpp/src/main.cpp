@@ -1,4 +1,5 @@
 #include "Game.hpp"
+#include "ParticleSystem.hpp"
 #include <emscripten/bind.h>
 
 EMSCRIPTEN_BINDINGS(WASM_Venture) {
@@ -22,6 +23,17 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .field("currentFrame", &AnimationState::currentFrame)
         .field("facingLeft", &AnimationState::facingLeft);
 
+    emscripten::value_object<Particle>("Particle")
+        .field("position", &Particle::position)
+        .field("velocity", &Particle::velocity)
+        .field("life", &Particle::life)
+        .field("maxLife", &Particle::maxLife)
+        .field("size", &Particle::size)
+        .field("rotation", &Particle::rotation)
+        .field("angularVelocity", &Particle::angularVelocity);
+
+    emscripten::register_vector<Particle>("ParticleList");
+
     emscripten::class_<Game>("Game")
         .constructor<>()
         .function("update", &Game::update)
@@ -29,8 +41,10 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getPlayerPosition", &Game::getPlayerPosition)
         .function("getCameraPosition", &Game::getCameraPosition)
         .function("getPlatforms", &Game::getPlatforms)
+        .function("getParticles", &Game::getParticles)
         .function("getPlayerAnimationState", &Game::getPlayerAnimationState)
         .function("getPlayerSize", &Game::getPlayerSize)
-        // New: Expose the callback setter to JavaScript
-        .function("setSoundCallback", &Game::setSoundCallback);
+        .function("setSoundCallback", &Game::setSoundCallback)
+        .function("loadLevel", &Game::loadLevel)
+        .function("setLevelCompleteCallback", &Game::setLevelCompleteCallback);
 }

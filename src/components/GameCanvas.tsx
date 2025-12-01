@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Renderer } from '../gl/renderer';
-import { loadWasmModule, type Game, type InputState, type Platform } from '../wasm/loader';
+import { loadWasmModule, type Game, type InputState, type Platform, type Particle } from '../wasm/loader';
 import { AudioManager } from '../audio/AudioManager';
 
 import vertexShaderSource from '../gl/shaders/tex.vert.glsl?raw';
@@ -15,11 +15,7 @@ const MUSIC_URL = './background-music.mp3';
 const JUMP_SFX_URL = './jump.mp3';
 const LAND_SFX_URL = './land.mp3';
 
-const ANIMATION_OFFSETS: Record<string, number> = {
-  idle: 0.1875,
-  run: 0.1875,
-  jump: 0.1,
-};
+
 
 const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,6 +24,8 @@ const GameCanvas = () => {
   });
   const audioManagerRef = useRef<AudioManager | null>(null);
   const [volume, setVolume] = useState(0.5);
+  const [levelComplete, setLevelComplete] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
 
   useEffect(() => {
     audioManagerRef.current = new AudioManager();
@@ -73,6 +71,26 @@ const GameCanvas = () => {
         const wasmModule = await loadWasmModule();
         gameInstance = new wasmModule.Game();
         gameInstance.setSoundCallback(handleSoundEvent);
+
+        // Register level complete callback: will be called from WASM when a goal is reached
+        (gameInstance as any).setLevelCompleteCallback(() => {
+          setLevelComplete(true);
+        });
+
+        // Load a predefined test level JSON from public/levels/test-1.json and pass it into the WASM game.
+        try {
+          const levelResp = await fetch('/levels/test-1.json');
+          if (levelResp.ok) {
+            const levelObj = await levelResp.json();
+            // Pass the raw JS object to embind; Game::loadLevel will parse it.
+            (gameInstance as any).loadLevel(levelObj);
+          } else {
+            console.warn('Failed to fetch level JSON:', levelResp.status);
+          }
+        } catch (err) {
+          console.warn('Error loading level JSON:', err);
+        }
+
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
           renderer.loadTexture(WAZZY_SPRITESHEET_URL),
@@ -101,12 +119,27 @@ const GameCanvas = () => {
           for (let i = 0; i < wasmPlatforms.size(); i++) {
             jsPlatforms.push(wasmPlatforms.get(i));
           }
-          // Apply a visual offset to the player position to fix the hovering issue.
-          // The sprite has some empty space at the bottom, so we shift it down slightly.
-          // We use dynamic offsets because the padding differs between animation states.
-          const offset = ANIMATION_OFFSETS[playerAnim.currentState] ?? 0.1;
-          const visualPlayerPos = { x: playerPosition.x, y: playerPosition.y - offset };
-          renderer.drawScene(cameraPosition, visualPlayerPos, playerSize, jsPlatforms, playerTexture, platformTexture, backgroundTexture, playerAnim);
+          const wasmParticles = gameInstance.getParticles();
+          const jsParticles: Particle[] = [];
+          for (let i = 0; i < wasmParticles.size(); i++) {
+            jsParticles.push(wasmParticles.get(i));
+          }
+
+          // Debug: compute nearest platform top under the player horizontally
+          let nearestTop: number | null = null;
+          for (const p of jsPlatforms) {
+            const pxMin = p.position.x - p.size.x / 2;
+            const pxMax = p.position.x + p.size.x / 2;
+            if (playerPosition.x >= pxMin - 0.01 && playerPosition.x <= pxMax + 0.01) {
+              const top = p.position.y + p.size.y / 2;
+              if (nearestTop === null || top > nearestTop) nearestTop = top;
+            }
+          }
+          const playerBottom = playerPosition.y - playerSize.y / 2;
+          const delta = nearestTop !== null ? (playerBottom - nearestTop) : null;
+          setDebugInfo(`playerY: ${playerPosition.y.toFixed(3)} bottom: ${playerBottom.toFixed(3)} platformTop: ${nearestTop !== null ? nearestTop.toFixed(3) : 'N/A'} delta: ${delta !== null ? delta.toFixed(3) : 'N/A'}`);
+
+          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, jsParticles, playerTexture, platformTexture, backgroundTexture, playerAnim);
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         animationFrameId = requestAnimationFrame(gameLoop);
@@ -150,6 +183,19 @@ const GameCanvas = () => {
           onChange={handleVolumeChange}
         />
       </div>
+      <div style={{ position: 'absolute', left: '10px', top: '10px', zIndex: 30, color: '#0ff', background: 'rgba(0,0,0,0.6)', padding: '6px', fontFamily: 'monospace', fontSize: '12px', borderRadius: '4px' }}>
+        {debugInfo}
+      </div>
+      {levelComplete && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '2rem', zIndex: 20
+        }}>
+          Level Complete!
+        </div>
+      )}
     </div>
   );
 };
