@@ -1,21 +1,28 @@
-export interface Vec2 { x: number; y: number; }
-export interface Platform { position: Vec2; size: Vec2; }
-export interface PlatformList { get(index: number): Platform; size(): number; }
-export interface InputState { left: boolean; right: boolean; jump: boolean; }
+import createWasmModule from './main.js';
 
-export interface Game {
-  update(deltaTime: number): void;
-  handleInput(inputState: InputState): void;
-  getPlayerPosition(): Vec2;
-  getPlatforms(): PlatformList;
-  getCameraPosition(): Vec2;
+// Define the shape of the C++ Game class exposed via Emscripten
+interface Game {
+  new(): Game; // Constructor
+  update(left: boolean, right: boolean, jump: boolean): void;
+  getRenderData(): any;
+  getBackgroundData(): any;
+  getSoundData(): any;
   delete(): void;
 }
 
-export interface GameModule { Game: { new(): Game }; }
+// Define the shape of the fully loaded WASM module instance
+export interface GameModule {
+  instance: {
+    Game: Game;
+    HEAPF32: {
+      buffer: ArrayBuffer;
+    };
+  };
+}
 
-export const loadWasmModule = async (): Promise<GameModule> => {
-  const factory = (window as any).createGameModule;
-  if (!factory) throw new Error("WASM module factory not found on window.");
-  return await factory() as GameModule;
-};
+// Default export of the loader function
+export default async function loadGameModule(): Promise<GameModule> {
+  // Since we now have a proper ES6 module, we can call it directly.
+  const module = await createWasmModule();
+  return module as unknown as GameModule;
+}
