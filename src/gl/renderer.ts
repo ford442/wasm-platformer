@@ -1,9 +1,9 @@
-import type { Vec2, Platform, AnimationState } from '../wasm/loader';
+import type { Vec2, Platform, AnimationState, Particle } from '../wasm/loader';
 
 export type TextureObject = {
-    texture: WebGLTexture;
-    width: number;
-    height: number;
+  texture: WebGLTexture;
+  width: number;
+  height: number;
 };
 
 const animationMap = {
@@ -36,8 +36,13 @@ export class Renderer {
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
   private fullScreenQuadBuffer: WebGLBuffer | null = null;
+  // Map to store per-texture anchors: anchors.get(texture) -> array[row][frame] = offsetPx
+  private anchors: Map<WebGLTexture, number[][]> = new Map();
+  private debugRedTexture: TextureObject | null = null;
+  private debugGreenTexture: TextureObject | null = null;
+  private whiteTexture: TextureObject | null = null;
 
-    
+
   constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource: string) {
     const context = canvas.getContext('webgl2');
     if (!context) throw new Error('WebGL2 is not supported.');
@@ -66,10 +71,13 @@ export class Renderer {
     this.backgroundTextureUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_texture');
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupGeometry();
+    // create simple solid debug textures
+    this.debugRedTexture = this.createSolidTexture([255, 0, 0, 128]);
+    this.debugGreenTexture = this.createSolidTexture([0, 255, 0, 128]);
+    this.whiteTexture = this.createSolidTexture([255, 255, 255, 255]);
   }
 
-    
-private compileShader(type: number, source: string): WebGLShader {
+  private compileShader(type: number, source: string): WebGLShader {
     const shader = this.gl.createShader(type)!;
     this.gl.shaderSource(shader, source);
     this.gl.compileShader(shader);
@@ -79,19 +87,19 @@ private compileShader(type: number, source: string): WebGLShader {
     return shader;
   }
 
-    
+
   private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
-      const program = this.gl.createProgram()!;
-      this.gl.attachShader(program, vertexShader);
-      this.gl.attachShader(program, fragmentShader);
-      this.gl.linkProgram(program);
-      if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-          throw new Error(`Program link error: ${this.gl.getProgramInfoLog(program)}`);
-      }
-      return program;
+    const program = this.gl.createProgram()!;
+    this.gl.attachShader(program, vertexShader);
+    this.gl.attachShader(program, fragmentShader);
+    this.gl.linkProgram(program);
+    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+      throw new Error(`Program link error: ${this.gl.getProgramInfoLog(program)}`);
+    }
+    return program;
   }
 
-    
+
   public async loadTexture(url: string): Promise<TextureObject> {
     const texture = this.gl.createTexture();
     if (!texture) throw new Error("Failed to create texture");
@@ -104,10 +112,66 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+
+    // If the image looks like the player spritesheet (matches frame sizes in animationMap), compute per-frame bottommost alpha to anchor feet
+    try {
+      // create an offscreen canvas to inspect pixels
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(image, 0, 0);
+        const anchorsForTexture: number[][] = [];
+        // attempt to compute anchors for each row/frame described in animationMap
+        for (const key of Object.keys(animationMap)) {
+          const anim = (animationMap as any)[key];
+          const frameW = anim.frameSize.x;
+          const frameH = anim.frameSize.y;
+          const row = anim.row;
+          const frames = anim.frames;
+          // ensure frame area fits in the image
+          if ((row + 1) * frameH <= image.height && frames * frameW <= image.width) {
+            // ensure anchorsForTexture has enough rows
+            if (!anchorsForTexture[row]) anchorsForTexture[row] = [];
+            for (let f = 0; f < frames; ++f) {
+              const sx = f * frameW;
+              const sy = row * frameH;
+              const imgData = ctx.getImageData(sx, sy, frameW, frameH).data;
+              let bottommost = -1; // y index (0..frameH-1) of bottommost non-transparent pixel
+              for (let y = frameH - 1; y >= 0; --y) {
+                let rowHasOpaque = false;
+                for (let x = 0; x < frameW; ++x) {
+                  const idx = (y * frameW + x) * 4;
+                  const alpha = imgData[idx + 3];
+                  if (alpha > 10) { rowHasOpaque = true; break; }
+                }
+                if (rowHasOpaque) { bottommost = y; break; }
+              }
+              if (bottommost === -1) {
+                // fully transparent frame; assume bottommost at bottom
+                anchorsForTexture[row][f] = 0;
+              } else {
+                const offsetPx = (frameH - 1) - bottommost; // pixels between bottommost opaque and bottom
+                anchorsForTexture[row][f] = offsetPx;
+              }
+            }
+          }
+        }
+        // store anchors if any found
+        let hasAny = false;
+        for (const r in anchorsForTexture) if (anchorsForTexture[r] && anchorsForTexture[r].length) { hasAny = true; break; }
+        if (hasAny) this.anchors.set(texture, anchorsForTexture);
+      }
+    } catch (err) {
+      // non-fatal: if pixel inspection fails, we simply don't set anchors
+      console.warn('Failed to compute texture anchors for', url, err);
+    }
+
     return { texture, width: image.width, height: image.height };
   }
 
-    
+
   private setupGeometry() {
     const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
     this.unitSquarePositionBuffer = this.gl.createBuffer();
@@ -123,11 +187,36 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, fullScreenPositions, this.gl.STATIC_DRAW);
   }
 
-    
-  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean) {
+
+  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean, visualYOffset: number = 0) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.spriteTextureUniformLocation, 0);
-    this.gl.uniform2f(this.spriteModelPositionUniformLocation, position.x, position.y);
+
+    // compute vertical anchor offset (in world units) if we have precomputed anchors for this texture
+    let modelPosY = position.y;
+    const anchorsForTex = this.anchors.get(textureObj.texture);
+    if (anchorsForTex) {
+      // determine current frame indices
+      const frameIndex = Math.round(frameCoord.x / (frameSize.x || 1));
+      const rowIndex = Math.round(frameCoord.y / (frameSize.y || 1));
+      if (anchorsForTex[rowIndex] && anchorsForTex[rowIndex][frameIndex] !== undefined) {
+        const offsetPx = anchorsForTex[rowIndex][frameIndex];
+        const offsetWorld = (offsetPx / frameSize.y) * size.y;
+        modelPosY = position.y - offsetWorld; // shift sprite down so foot aligns with collision bottom
+      }
+    } else {
+      // Fallback: if sprite frames are 64x64 (our player sheet), apply a small heuristic offset so feet sit lower
+      if (frameSize && frameSize.y === 64 && frameSize.x === 64) {
+        const fallbackFraction = 0.25; // increased: fraction of sprite height to lower the sprite
+        const offsetWorld = size.y * fallbackFraction;
+        modelPosY = position.y - offsetWorld;
+      }
+    }
+
+    // apply an additional visual Y offset (in world units), positive means move sprite down
+    if (visualYOffset) modelPosY -= visualYOffset;
+
+    this.gl.uniform2f(this.spriteModelPositionUniformLocation, position.x, modelPosY);
     this.gl.uniform2f(this.spriteModelSizeUniformLocation, size.x, size.y);
     this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
     this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
@@ -142,7 +231,7 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-    
+
   private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
     this.gl.useProgram(this.backgroundProgram);
     this.gl.bindTexture(this.gl.TEXTURE_2D, backgroundTexture.texture);
@@ -156,32 +245,83 @@ private compileShader(type: number, source: string): WebGLShader {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-    
-  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
+
+  private createSolidTexture(color: [number, number, number, number]): TextureObject {
+    const tex = this.gl.createTexture();
+    if (!tex) throw new Error('Failed to create debug texture');
+    this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+    const data = new Uint8Array(color);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, data);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+    return { texture: tex, width: 1, height: 1 };
+  }
+
+  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], particles: Particle[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    if (backgroundTexture) {this.drawBackground(cameraPosition, backgroundTexture);}
+    if (backgroundTexture) { this.drawBackground(cameraPosition, backgroundTexture); }
     this.gl.useProgram(this.spriteProgram);
     const aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
     const worldWidth = 10.0;
     const worldHeight = worldWidth / aspectRatio;
-    const projectionMatrix = [ 2.0 / worldWidth, 0, 0, 0, 0, 2.0 / worldHeight, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1 ];
+    const projectionMatrix = [2.0 / worldWidth, 0, 0, 0, 0, 2.0 / worldHeight, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1];
     this.gl.uniformMatrix4fv(this.spriteProjectionMatrixUniformLocation, false, projectionMatrix);
     this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     if (platformTexture) {
       for (const platform of platforms) {
-        this.drawSprite(platform.position, platform.size, platformTexture, { x: platformTexture.width, y: platformTexture.height }, { x: platformTexture.width, y: platformTexture.height }, { x: 0, y: 0 }, false);
+        this.drawSprite(platform.position, platform.size, platformTexture, { x: platformTexture.width, y: platformTexture.height }, { x: platformTexture.width, y: platformTexture.height }, { x: 0, y: 0 }, false, 0);
       }
     }
+    // draw debug collision boxes (platforms = green, player = red)
+    if (this.debugGreenTexture) {
+      for (const platform of platforms) {
+        // platform collision box: use platform.position and platform.size
+        this.drawSprite({ x: platform.position.x, y: platform.position.y }, { x: platform.size.x, y: platform.size.y }, this.debugGreenTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
+      }
+    }
+
+    // compute nearest platform top under the player horizontally (renderer-level)
+    let nearestTop: number | null = null;
+    for (const p of platforms) {
+      const pxMin = p.position.x - p.size.x / 2;
+      const pxMax = p.position.x + p.size.x / 2;
+      if (playerPosition.x >= pxMin - 0.01 && playerPosition.x <= pxMax + 0.01) {
+        const top = p.position.y + p.size.y / 2;
+        if (nearestTop === null || top > nearestTop) nearestTop = top;
+      }
+    }
+    let visualYOffset = 0;
+    if (nearestTop !== null) {
+      const playerBottom = playerPosition.y - playerSize.y / 2;
+      visualYOffset = playerBottom - nearestTop; // positive => sprite bottom is above platform top; move sprite down by this amount
+      if (visualYOffset < 0 || visualYOffset > 0.2) visualYOffset = 0; // Only snap if close enough (avoid snapping when jumping high)
+    }
+
     if (playerTexture && playerAnim) {
       const animData = animationMap[playerAnim.currentState as keyof typeof animationMap] || animationMap.idle;
       const frame = playerAnim.currentFrame % animData.frames;
       const frameCoord = { x: frame * animData.frameSize.x, y: animData.row * animData.frameSize.y };
-      this.drawSprite(playerPosition, playerSize, playerTexture, { x: playerTexture.width, y: playerTexture.height }, animData.frameSize, frameCoord, playerAnim.facingLeft);
+      // pass visualYOffset so sprite is nudged down to sit on platform
+      this.drawSprite(playerPosition, playerSize, playerTexture, { x: playerTexture.width, y: playerTexture.height }, animData.frameSize, frameCoord, playerAnim.facingLeft, visualYOffset);
+
+      // draw player collision box
+      if (this.debugRedTexture) {
+        this.drawSprite({ x: playerPosition.x, y: playerPosition.y }, { x: playerSize.x, y: playerSize.y }, this.debugRedTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
+      }
+    }
+
+    // Draw particles
+    if (this.whiteTexture) {
+      for (const p of particles) {
+        this.drawSprite(p.position, { x: p.size, y: p.size }, this.whiteTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false, 0);
+      }
     }
   }
 
-    
+
 }

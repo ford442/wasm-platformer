@@ -12,6 +12,18 @@ export interface AnimationState {
   facingLeft: boolean;
 }
 
+export interface Particle {
+  position: Vec2;
+  velocity: Vec2;
+  life: number;
+  maxLife: number;
+  size: number;
+  rotation: number;
+  angularVelocity: number;
+}
+
+export interface ParticleList { get(index: number): Particle; size(): number; }
+
 export interface Game {
   update(deltaTime: number): void;
   handleInput(inputState: InputState): void;
@@ -19,13 +31,16 @@ export interface Game {
   getPlayerSize(): Vec2;
   getCameraPosition(): Vec2;
   getPlatforms(): PlatformList;
+  getParticles(): ParticleList;
   getPlayerAnimationState(): AnimationState;
   setSoundCallback(callback: (soundName: string) => void): void;
+  loadLevel(level: any): void; // accepts a plain JS object parsed from JSON
+  setLevelCompleteCallback(callback: () => void): void;
   delete(): void;
 }
 
-export interface GameModule { 
-  Game: { new(): Game }; 
+export interface GameModule {
+  Game: { new(): Game };
 }
 
 export const loadWasmModule = async (): Promise<GameModule> => {
