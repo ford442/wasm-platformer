@@ -58,6 +58,40 @@ Game::Game() {
     // A large, high platform
     platforms.push_back({ {42.0f, 2.0f}, {4.0f, 0.3f} });
 
+    // Maze-like section with vertical challenges (46-60)
+    platforms.push_back({ {46.0f, 1.2f}, {1.5f, 0.2f} });
+    platforms.push_back({ {48.5f, 0.4f}, {1.0f, 0.2f} });
+    platforms.push_back({ {50.5f, 1.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {52.5f, 2.0f}, {1.0f, 0.2f} });
+    platforms.push_back({ {54.0f, 2.8f}, {2.0f, 0.2f} });
+    platforms.push_back({ {56.5f, 2.0f}, {1.0f, 0.2f} });
+    platforms.push_back({ {58.0f, 1.2f}, {1.5f, 0.2f} });
+    platforms.push_back({ {60.0f, 0.5f}, {1.5f, 0.2f} });
+
+    // Precision jumping section with small platforms (62-75)
+    platforms.push_back({ {62.5f, 1.0f}, {0.8f, 0.2f} });
+    platforms.push_back({ {64.0f, 1.5f}, {0.8f, 0.2f} });
+    platforms.push_back({ {65.5f, 2.0f}, {0.8f, 0.2f} });
+    platforms.push_back({ {67.0f, 2.3f}, {0.8f, 0.2f} });
+    platforms.push_back({ {68.5f, 2.5f}, {1.0f, 0.2f} });
+    platforms.push_back({ {70.5f, 2.0f}, {0.8f, 0.2f} });
+    platforms.push_back({ {72.0f, 1.5f}, {0.8f, 0.2f} });
+    platforms.push_back({ {73.5f, 1.0f}, {1.0f, 0.2f} });
+    platforms.push_back({ {75.0f, 0.3f}, {1.5f, 0.2f} });
+
+    // Final challenge section - zigzag pattern (77-90)
+    platforms.push_back({ {77.5f, 0.8f}, {1.5f, 0.2f} });
+    platforms.push_back({ {79.5f, 1.6f}, {1.5f, 0.2f} });
+    platforms.push_back({ {81.5f, 2.4f}, {1.5f, 0.2f} });
+    platforms.push_back({ {83.5f, 3.0f}, {2.0f, 0.2f} });
+    platforms.push_back({ {86.0f, 2.2f}, {1.5f, 0.2f} });
+    platforms.push_back({ {88.0f, 1.4f}, {1.5f, 0.2f} });
+    platforms.push_back({ {90.0f, 0.6f}, {2.0f, 0.2f} });
+
+    // Goal platform - elevated finish line
+    platforms.push_back({ {93.0f, 1.5f}, {3.0f, 0.5f} });
+}
+
     // Vertical climb section
     platforms.push_back({ {46.0f, 2.0f}, {2.0f, 0.2f} });
     platforms.push_back({ {47.5f, 3.0f}, {1.5f, 0.2f} });
