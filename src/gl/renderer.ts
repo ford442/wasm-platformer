@@ -1,127 +1,327 @@
+import type { Vec2, Platform, AnimationState, Particle } from '../wasm/loader';
+
+export type TextureObject = {
+  texture: WebGLTexture;
+  width: number;
+  height: number;
+};
+
+const animationMap = {
+  idle: { row: 0, frames: 2, frameSize: { x: 64, y: 64 } },
+  run: { row: 1, frames: 4, frameSize: { x: 64, y: 64 } },
+  jump: { row: 2, frames: 1, frameSize: { x: 64, y: 64 } },
+};
+
+
 export class Renderer {
-    private gl: WebGL2RenderingContext;
-    private spriteProgram: WebGLProgram;
-    private backgroundProgram: WebGLProgram;
-    private spriteVao: WebGLVertexArrayObject;
-    private backgroundVao: WebGLVertexArrayObject;
-    private spriteBuffer: WebGLBuffer;
-    private backgroundBuffer: WebGLBuffer;
-    private texture: WebGLTexture | null = null;
-    private canvas: HTMLCanvasElement;
+  private gl: WebGL2RenderingContext;
+  private spriteProgram: WebGLProgram;
+  private spritePositionAttributeLocation: number;
+  private spriteTexCoordAttributeLocation: number;
+  private spriteModelPositionUniformLocation: WebGLUniformLocation | null;
+  private spriteModelSizeUniformLocation: WebGLUniformLocation | null;
+  private spriteCameraPositionUniformLocation: WebGLUniformLocation | null;
+  private spriteTextureUniformLocation: WebGLUniformLocation | null;
+  private spriteFrameSizeUniformLocation: WebGLUniformLocation | null;
+  private spriteSheetSizeUniformLocation: WebGLUniformLocation | null;
+  private spriteFrameCoordUniformLocation: WebGLUniformLocation | null;
+  private spriteFlipHorizontalUniformLocation: WebGLUniformLocation | null;
+  private spriteProjectionMatrixUniformLocation: WebGLUniformLocation | null;
+  private backgroundProgram: WebGLProgram;
+  private backgroundPositionAttributeLocation: number;
+  private backgroundCameraPositionUniformLocation: WebGLUniformLocation | null;
+  private backgroundTextureSizeUniformLocation: WebGLUniformLocation | null;
+  private backgroundResolutionUniformLocation: WebGLUniformLocation | null;
+  private backgroundTextureUniformLocation: WebGLUniformLocation | null;
+  private unitSquarePositionBuffer: WebGLBuffer | null = null;
+  private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
+  private fullScreenQuadBuffer: WebGLBuffer | null = null;
+  // Map to store per-texture anchors: anchors.get(texture) -> array[row][frame] = offsetPx
+  private anchors: Map<WebGLTexture, number[][]> = new Map();
+  private debugRedTexture: TextureObject | null = null;
+  private debugGreenTexture: TextureObject | null = null;
+  private whiteTexture: TextureObject | null = null;
 
-    // Uniform locations
-    private spriteResolutionLocation: WebGLUniformLocation | null;
-    private spriteTextureLocation: WebGLUniformLocation | null;
-    private bgResolutionLocation: WebGLUniformLocation | null;
-    private bgCameraLocation: WebGLUniformLocation | null;
 
-    constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource:string) {
-        this.canvas = canvas;
-        const gl = canvas.getContext('webgl2');
-        if (!gl) {
-            throw new Error('WebGL 2 not supported');
+  constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource: string) {
+    const context = canvas.getContext('webgl2');
+    if (!context) throw new Error('WebGL2 is not supported.');
+    this.gl = context;
+    const spriteVertexShader = this.compileShader(this.gl.VERTEX_SHADER, spriteVsSource);
+    const spriteFragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, spriteFsSource);
+    this.spriteProgram = this.createProgram(spriteVertexShader, spriteFragmentShader);
+    this.spritePositionAttributeLocation = this.gl.getAttribLocation(this.spriteProgram, 'a_position');
+    this.spriteTexCoordAttributeLocation = this.gl.getAttribLocation(this.spriteProgram, 'a_texCoord');
+    this.spriteModelPositionUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_model_position');
+    this.spriteModelSizeUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_model_size');
+    this.spriteCameraPositionUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_camera_position');
+    this.spriteTextureUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_texture');
+    this.spriteFrameSizeUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_sprite_frame_size');
+    this.spriteSheetSizeUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_sprite_sheet_size');
+    this.spriteFrameCoordUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_sprite_frame_coord');
+    this.spriteFlipHorizontalUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_flip_horizontal');
+    this.spriteProjectionMatrixUniformLocation = this.gl.getUniformLocation(this.spriteProgram, 'u_projection');
+    const bgVertexShader = this.compileShader(this.gl.VERTEX_SHADER, bgVsSource);
+    const bgFragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER, bgFsSource);
+    this.backgroundProgram = this.createProgram(bgVertexShader, bgFragmentShader);
+    this.backgroundPositionAttributeLocation = this.gl.getAttribLocation(this.backgroundProgram, 'a_position');
+    this.backgroundCameraPositionUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_camera_position');
+    this.backgroundTextureSizeUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_texture_size');
+    this.backgroundResolutionUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_resolution');
+    this.backgroundTextureUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_texture');
+    this.gl.viewport(0, 0, canvas.width, canvas.height);
+    this.setupGeometry();
+    // create simple solid debug textures
+    this.debugRedTexture = this.createSolidTexture([255, 0, 0, 128]);
+    this.debugGreenTexture = this.createSolidTexture([0, 255, 0, 128]);
+    this.whiteTexture = this.createSolidTexture([255, 255, 255, 255]);
+  }
+
+  private compileShader(type: number, source: string): WebGLShader {
+    const shader = this.gl.createShader(type)!;
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      throw new Error(`Shader compile error: ${this.gl.getShaderInfoLog(shader)}`);
+    }
+    return shader;
+  }
+
+
+  private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+    const program = this.gl.createProgram()!;
+    this.gl.attachShader(program, vertexShader);
+    this.gl.attachShader(program, fragmentShader);
+    this.gl.linkProgram(program);
+    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+      throw new Error(`Program link error: ${this.gl.getProgramInfoLog(program)}`);
+    }
+    return program;
+  }
+
+
+  public async loadTexture(url: string): Promise<TextureObject> {
+    const texture = this.gl.createTexture();
+    if (!texture) throw new Error("Failed to create texture");
+    const image = new Image();
+    image.src = url;
+    await image.decode(); // Wait for the image to load
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+
+    // If the image looks like the player spritesheet (matches frame sizes in animationMap), compute per-frame bottommost alpha to anchor feet
+    try {
+      // create an offscreen canvas to inspect pixels
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(image, 0, 0);
+        const anchorsForTexture: number[][] = [];
+        // attempt to compute anchors for each row/frame described in animationMap
+        for (const key of Object.keys(animationMap)) {
+          const anim = (animationMap as any)[key];
+          const frameW = anim.frameSize.x;
+          const frameH = anim.frameSize.y;
+          const row = anim.row;
+          const frames = anim.frames;
+          // ensure frame area fits in the image
+          if ((row + 1) * frameH <= image.height && frames * frameW <= image.width) {
+            // ensure anchorsForTexture has enough rows
+            if (!anchorsForTexture[row]) anchorsForTexture[row] = [];
+            for (let f = 0; f < frames; ++f) {
+              const sx = f * frameW;
+              const sy = row * frameH;
+              const imgData = ctx.getImageData(sx, sy, frameW, frameH).data;
+              let bottommost = -1; // y index (0..frameH-1) of bottommost non-transparent pixel
+              for (let y = frameH - 1; y >= 0; --y) {
+                let rowHasOpaque = false;
+                for (let x = 0; x < frameW; ++x) {
+                  const idx = (y * frameW + x) * 4;
+                  const alpha = imgData[idx + 3];
+                  if (alpha > 10) { rowHasOpaque = true; break; }
+                }
+                if (rowHasOpaque) { bottommost = y; break; }
+              }
+              if (bottommost === -1) {
+                // fully transparent frame; assume bottommost at bottom
+                anchorsForTexture[row][f] = 0;
+              } else {
+                const offsetPx = (frameH - 1) - bottommost; // pixels between bottommost opaque and bottom
+                anchorsForTexture[row][f] = offsetPx;
+              }
+            }
+          }
         }
-        this.gl = gl;
-
-        this.spriteProgram = this.createProgram(spriteVsSource, spriteFsSource);
-        this.backgroundProgram = this.createProgram(bgVsSource, bgFsSource);
-
-        this.spriteResolutionLocation = gl.getUniformLocation(this.spriteProgram, "u_resolution");
-        this.spriteTextureLocation = gl.getUniformLocation(this.spriteProgram, "u_texture");
-        this.bgResolutionLocation = gl.getUniformLocation(this.backgroundProgram, "u_resolution");
-        this.bgCameraLocation = gl.getUniformLocation(this.backgroundProgram, "u_camera");
-
-        this.spriteVao = this.gl.createVertexArray()!;
-        this.gl.bindVertexArray(this.spriteVao);
-        this.spriteBuffer = this.gl.createBuffer()!;
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.spriteBuffer);
-        this.gl.enableVertexAttribArray(0);
-        this.gl.vertexAttribPointer(0, 4, this.gl.FLOAT, false, 8 * 4, 0); // x, y, w, h
-        this.gl.enableVertexAttribArray(1);
-        this.gl.vertexAttribPointer(1, 4, this.gl.FLOAT, false, 8 * 4, 4 * 4); // u, v, uw, vh
-        
-        this.backgroundVao = this.gl.createVertexArray()!;
-        this.gl.bindVertexArray(this.backgroundVao);
-        this.backgroundBuffer = this.gl.createBuffer()!;
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.backgroundBuffer);
-        this.gl.enableVertexAttribArray(0);
-        this.gl.vertexAttribPointer(0, 4, this.gl.FLOAT, false, 0, 0);
-
-        this.gl.bindVertexArray(null);
+        // store anchors if any found
+        let hasAny = false;
+        for (const r in anchorsForTexture) if (anchorsForTexture[r] && anchorsForTexture[r].length) { hasAny = true; break; }
+        if (hasAny) this.anchors.set(texture, anchorsForTexture);
+      }
+    } catch (err) {
+      // non-fatal: if pixel inspection fails, we simply don't set anchors
+      console.warn('Failed to compute texture anchors for', url, err);
     }
 
-    // NEW: Asynchronous init method
-    public async init() {
-        this.texture = await this.loadTexture('wazzy_spritesheet.png');
-        this.gl.enable(this.gl.BLEND);
-        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    return { texture, width: image.width, height: image.height };
+  }
+
+
+  private setupGeometry() {
+    const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5]);
+    this.unitSquarePositionBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
+    this.unitSquareTexCoordBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+    const fullScreenPositions = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+    this.fullScreenQuadBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fullScreenQuadBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, fullScreenPositions, this.gl.STATIC_DRAW);
+  }
+
+
+  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean, visualYOffset: number = 0) {
+    this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
+    this.gl.uniform1i(this.spriteTextureUniformLocation, 0);
+
+    // compute vertical anchor offset (in world units) if we have precomputed anchors for this texture
+    let modelPosY = position.y;
+    const anchorsForTex = this.anchors.get(textureObj.texture);
+    if (anchorsForTex) {
+      // determine current frame indices
+      const frameIndex = Math.round(frameCoord.x / (frameSize.x || 1));
+      const rowIndex = Math.round(frameCoord.y / (frameSize.y || 1));
+      if (anchorsForTex[rowIndex] && anchorsForTex[rowIndex][frameIndex] !== undefined) {
+        const offsetPx = anchorsForTex[rowIndex][frameIndex];
+        const offsetWorld = (offsetPx / frameSize.y) * size.y;
+        modelPosY = position.y - offsetWorld; // shift sprite down so foot aligns with collision bottom
+      }
+    } else {
+      // Fallback: if sprite frames are 64x64 (our player sheet), apply a small heuristic offset so feet sit lower
+      if (frameSize && frameSize.y === 64 && frameSize.x === 64) {
+        const fallbackFraction = 0.25; // increased: fraction of sprite height to lower the sprite
+        const offsetWorld = size.y * fallbackFraction;
+        modelPosY = position.y - offsetWorld;
+      }
     }
 
-    public draw(spriteData: any, backgroundData: any) {
-        this.gl.clearColor(0.1, 0.1, 0.15, 1.0);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    // apply an additional visual Y offset (in world units), positive means move sprite down
+    if (visualYOffset) modelPosY -= visualYOffset;
 
-        // Draw background
-        this.gl.useProgram(this.backgroundProgram);
-        this.gl.bindVertexArray(this.backgroundVao);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.backgroundBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, backgroundData, this.gl.DYNAMIC_DRAW);
-        this.gl.uniform2f(this.bgResolutionLocation, this.canvas.width, this.canvas.height);
-        this.gl.uniform2f(this.bgCameraLocation, spriteData[0] / 2, spriteData[1] / 2); // Simple camera logic
-        this.gl.drawArrays(this.gl.POINTS, 0, backgroundData.length / 4);
+    this.gl.uniform2f(this.spriteModelPositionUniformLocation, position.x, modelPosY);
+    this.gl.uniform2f(this.spriteModelSizeUniformLocation, size.x, size.y);
+    this.gl.uniform2f(this.spriteSheetSizeUniformLocation, sheetSize.x, sheetSize.y);
+    this.gl.uniform2f(this.spriteFrameSizeUniformLocation, frameSize.x, frameSize.y);
+    this.gl.uniform2f(this.spriteFrameCoordUniformLocation, frameCoord.x, frameCoord.y);
+    this.gl.uniform1f(this.spriteFlipHorizontalUniformLocation, facingLeft ? 1.0 : 0.0);
+    this.gl.enableVertexAttribArray(this.spritePositionAttributeLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquarePositionBuffer);
+    this.gl.vertexAttribPointer(this.spritePositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    this.gl.enableVertexAttribArray(this.spriteTexCoordAttributeLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.unitSquareTexCoordBuffer);
+    this.gl.vertexAttribPointer(this.spriteTexCoordAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
 
-        // Draw sprites
-        this.gl.useProgram(this.spriteProgram);
-        this.gl.bindVertexArray(this.spriteVao);
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-        this.gl.uniform1i(this.spriteTextureLocation, 0);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.spriteBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, spriteData, this.gl.DYNAMIC_DRAW);
-        this.gl.uniform2f(this.spriteResolutionLocation, this.canvas.width, this.canvas.height);
-        this.gl.drawArrays(this.gl.POINTS, 0, spriteData.length / 8);
+
+  private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
+    this.gl.useProgram(this.backgroundProgram);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, backgroundTexture.texture);
+    this.gl.uniform1i(this.backgroundTextureUniformLocation, 0);
+    this.gl.uniform2f(this.backgroundCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
+    this.gl.uniform2f(this.backgroundTextureSizeUniformLocation, backgroundTexture.width, backgroundTexture.height);
+    this.gl.uniform2f(this.backgroundResolutionUniformLocation, this.gl.canvas.width, this.gl.canvas.height);
+    this.gl.enableVertexAttribArray(this.backgroundPositionAttributeLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fullScreenQuadBuffer);
+    this.gl.vertexAttribPointer(this.backgroundPositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+
+
+  private createSolidTexture(color: [number, number, number, number]): TextureObject {
+    const tex = this.gl.createTexture();
+    if (!tex) throw new Error('Failed to create debug texture');
+    this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+    const data = new Uint8Array(color);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, data);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+    return { texture: tex, width: 1, height: 1 };
+  }
+
+  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], particles: Particle[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
+    this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    if (backgroundTexture) { this.drawBackground(cameraPosition, backgroundTexture); }
+    this.gl.useProgram(this.spriteProgram);
+    const aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
+    const worldWidth = 10.0;
+    const worldHeight = worldWidth / aspectRatio;
+    const projectionMatrix = [2.0 / worldWidth, 0, 0, 0, 0, 2.0 / worldHeight, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1];
+    this.gl.uniformMatrix4fv(this.spriteProjectionMatrixUniformLocation, false, projectionMatrix);
+    this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    if (platformTexture) {
+      for (const platform of platforms) {
+        this.drawSprite(platform.position, platform.size, platformTexture, { x: platformTexture.width, y: platformTexture.height }, { x: platformTexture.width, y: platformTexture.height }, { x: 0, y: 0 }, false, 0);
+      }
     }
-    
-    private createShader(type: number, source: string): WebGLShader {
-        const shader = this.gl.createShader(type)!;
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            throw new Error(`Shader compile error: ${this.gl.getShaderInfoLog(shader)}`);
-        }
-        return shader;
+    // draw debug collision boxes (platforms = green, player = red)
+    if (this.debugGreenTexture) {
+      for (const platform of platforms) {
+        // platform collision box: use platform.position and platform.size
+        this.drawSprite({ x: platform.position.x, y: platform.position.y }, { x: platform.size.x, y: platform.size.y }, this.debugGreenTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
+      }
     }
 
-    private createProgram(vsSource: string, fsSource: string): WebGLProgram {
-        const vs = this.createShader(this.gl.VERTEX_SHADER, vsSource);
-        const fs = this.createShader(this.gl.FRAGMENT_SHADER, fsSource);
-        const program = this.gl.createProgram()!;
-        this.gl.attachShader(program, vs);
-        this.gl.attachShader(program, fs);
-        this.gl.linkProgram(program);
-        if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-            throw new Error(`Program link error: ${this.gl.getProgramInfoLog(program)}`);
-        }
-        return program;
+    // compute nearest platform top under the player horizontally (renderer-level)
+    let nearestTop: number | null = null;
+    for (const p of platforms) {
+      const pxMin = p.position.x - p.size.x / 2;
+      const pxMax = p.position.x + p.size.x / 2;
+      if (playerPosition.x >= pxMin - 0.01 && playerPosition.x <= pxMax + 0.01) {
+        const top = p.position.y + p.size.y / 2;
+        if (nearestTop === null || top > nearestTop) nearestTop = top;
+      }
+    }
+    let visualYOffset = 0;
+    if (nearestTop !== null) {
+      const playerBottom = playerPosition.y - playerSize.y / 2;
+      visualYOffset = playerBottom - nearestTop; // positive => sprite bottom is above platform top; move sprite down by this amount
+      if (visualYOffset < 0 || visualYOffset > 0.2) visualYOffset = 0; // Only snap if close enough (avoid snapping when jumping high)
     }
 
-    private loadTexture(url: string): Promise<WebGLTexture> {
-        return new Promise((resolve) => {
-            const texture = this.gl.createTexture()!;
-            this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255])); // Temp pixel
+    if (playerTexture && playerAnim) {
+      const animData = animationMap[playerAnim.currentState as keyof typeof animationMap] || animationMap.idle;
+      const frame = playerAnim.currentFrame % animData.frames;
+      const frameCoord = { x: frame * animData.frameSize.x, y: animData.row * animData.frameSize.y };
+      // pass visualYOffset so sprite is nudged down to sit on platform
+      this.drawSprite(playerPosition, playerSize, playerTexture, { x: playerTexture.width, y: playerTexture.height }, animData.frameSize, frameCoord, playerAnim.facingLeft, visualYOffset);
 
-            const image = new Image();
-            image.onload = () => {
-                this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-                this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-                resolve(texture);
-            };
-            image.src = url;
-        });
+      // draw player collision box
+      if (this.debugRedTexture) {
+        this.drawSprite({ x: playerPosition.x, y: playerPosition.y }, { x: playerSize.x, y: playerSize.y }, this.debugRedTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
+      }
     }
+
+    // Draw particles
+    if (this.whiteTexture) {
+      for (const p of particles) {
+        this.drawSprite(p.position, { x: p.size, y: p.size }, this.whiteTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false, 0);
+      }
+    }
+  }
+
+
 }

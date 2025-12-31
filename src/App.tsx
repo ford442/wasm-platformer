@@ -1,5 +1,4 @@
 import React from 'react';
-// FIX: Update the import path to point to the components directory.
 import GameCanvas from './components/GameCanvas';
 
 const App = () => {
@@ -33,5 +32,4 @@ const App = () => {
   );
 };
 
-// FIX: Ensure this component has a default export so main.tsx can import it.
 export default App;

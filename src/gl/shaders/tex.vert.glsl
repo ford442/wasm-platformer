@@ -1,5 +1,4 @@
 #version 300 es
-
 in vec2 a_position;
 in vec2 a_texCoord;
 uniform mat4 u_projection;
@@ -7,7 +6,6 @@ uniform vec2 u_camera_position;
 uniform vec2 u_model_position;
 uniform vec2 u_model_size;
 out vec2 v_texCoord;
-
 void main() {
   vec2 world_position = (a_position * u_model_size) + u_model_position;
   vec2 view_position = world_position - u_camera_position;

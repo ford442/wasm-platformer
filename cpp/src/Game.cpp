@@ -1,212 +1,366 @@
 #include "Game.hpp"
-#include <cmath> // For std::abs
+#include <cmath>
+#include <algorithm>
+#include <emscripten/val.h>
+#include <cstdlib> // For rand()
 
-// Game constants
-const float GRAVITY = 0.5f;
-const float JUMP_FORCE = -12.0f;
-const float MOVE_SPEED = 5.0f;
-const float MAX_FALL_SPEED = 10.0f;
-const float FRICTION = 0.8f;
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
 
-// Stomp constants
-const float STOMP_BOUNCE_VELOCITY = -6.0f;
-const float STOMP_TOLERANCE = 10.0f;
+Game::Game() {
+    playerPosition = {0.0f, -1.5f};
+    playerVelocity = {0.0f, 0.0f};
+    playerSize = {0.5f, 0.8f};
+    cameraPosition = {0.0f, 0.0f};
+    playerAnimation = {"idle", 0, false};
+    isGrounded = false;
+    wasGrounded = false; // Initialize previous grounded state
+    canJump = true;
+    soundCallback = emscripten::val::null(); // Initialize callback to null
+    levelCompleteCallback = emscripten::val::null();
 
-// --- Constructor: New Level Layout ---
-// Here we define the test level
-Game::Game() : player({ { 100, 450, 32, 48 }, 0, 0, false, 0, 0, 0 }), camera({ 0, 0 }) {
-    // A long, continuous floor
-    platforms.push_back({ 0, 550, 1600, 50 });
-
-    // A stack of platforms to test jumping
-    platforms.push_back({ 250, 450, 150, 20 });
-    platforms.push_back({ 450, 380, 150, 20 });
-
-    // A wall to test horizontal collision
-    platforms.push_back({ 800, 350, 20, 200 });
-
-    // A small "roof" or ceiling to test head-bumping
-    platforms.push_back({ 450, 250, 150, 20 });
+    // Default ground/platforms (fallback)
+    platforms.push_back({ {-12.25f, -2.0f}, {110.0f, 0.2f} });
     
-    // A high, unreachable platform to tease a future ability
-    platforms.push_back({ 1000, 200, 200, 20});
+    platforms.push_back({ {-6.25f, -1.2f}, {1.0f, 0.2f} });
+    platforms.push_back({ {-4.25f, -0.8f}, {1.0f, 0.2f} });
+    platforms.push_back({ {-2.25f, -0.8f}, {1.0f, 0.2f} });
+    platforms.push_back({ {-2.25f, -0.8f}, {1.0f, 0.2f} });
+    platforms.push_back({ {-3.0, -0.6f}, {1.0f, 0.2f} });
+    platforms.push_back({ {-5.25f, -0.4f}, {1.70f, 0.2f} });
+    
+    platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
+    platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
+    platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
+    platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
 
-    // --- Add Enemies to the level ---
-    // An enemy walking on the main floor
-    enemies.push_back({ { 600, 502, 32, 48 }, -1.0f, false, 1 }); // Starts moving left
+    
+    // A series of ascending platforms
+    platforms.push_back({ {8.0f, 0.2f}, {1.0f, 0.2f} });
+    platforms.push_back({ {10.0f, 0.6f}, {1.0f, 0.2f} });
+    platforms.push_back({ {12.0f, 1.0f}, {1.0f, 0.2f} });
 
-    // An enemy on a higher platform
-    enemies.push_back({ { 500, 332, 32, 48 }, 1.0f, false, 0 }); // Starts moving right
+    // Floating platforms for a gap jump
+    platforms.push_back({ {15.0f, 1.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {18.0f, 1.5f}, {1.0f, 0.2f} });
 
-    generateBackground();
+    // A higher platform to test a vertical jump
+    platforms.push_back({ {20.0f, 2.5f}, {2.0f, 0.2f} });
+
+    // A long descending ramp
+    platforms.push_back({ {23.0f, 1.5f}, {2.0f, 0.2f} });
+    platforms.push_back({ {26.0f, 0.5f}, {2.0f, 0.2f} });
+    platforms.push_back({ {29.0f, -0.5f}, {3.0f, 0.2f} });
+
+    // Platforms with varied sizes and positions
+    platforms.push_back({ {33.0f, -0.2f}, {1.0f, 0.5f} });
+    platforms.push_back({ {35.0f, 0.8f}, {2.5f, 0.2f} });
+    platforms.push_back({ {38.0f, 1.5f}, {1.0f, 0.2f} });
+
+    // A large, high platform
+    platforms.push_back({ {42.0f, 2.0f}, {4.0f, 0.3f} });
+
+    // Maze-like section with vertical challenges (46-60)
+    platforms.push_back({ {46.0f, 1.2f}, {1.5f, 0.2f} });
+    platforms.push_back({ {48.5f, 0.4f}, {1.0f, 0.2f} });
+    platforms.push_back({ {50.5f, 1.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {52.5f, 2.0f}, {1.0f, 0.2f} });
+    platforms.push_back({ {54.0f, 2.8f}, {2.0f, 0.2f} });
+    platforms.push_back({ {56.5f, 2.0f}, {1.0f, 0.2f} });
+    platforms.push_back({ {58.0f, 1.2f}, {1.5f, 0.2f} });
+    platforms.push_back({ {60.0f, 0.5f}, {1.5f, 0.2f} });
+
+    // Precision jumping section with small platforms (62-75)
+    platforms.push_back({ {62.5f, 1.0f}, {0.8f, 0.2f} });
+    platforms.push_back({ {64.0f, 1.5f}, {0.8f, 0.2f} });
+    platforms.push_back({ {65.5f, 2.0f}, {0.8f, 0.2f} });
+    platforms.push_back({ {67.0f, 2.3f}, {0.8f, 0.2f} });
+    platforms.push_back({ {68.5f, 2.5f}, {1.0f, 0.2f} });
+    platforms.push_back({ {70.5f, 2.0f}, {0.8f, 0.2f} });
+    platforms.push_back({ {72.0f, 1.5f}, {0.8f, 0.2f} });
+    platforms.push_back({ {73.5f, 1.0f}, {1.0f, 0.2f} });
+    platforms.push_back({ {75.0f, 0.3f}, {1.5f, 0.2f} });
+
+    // Final challenge section - zigzag pattern (77-90)
+    platforms.push_back({ {77.5f, 0.8f}, {1.5f, 0.2f} });
+    platforms.push_back({ {79.5f, 1.6f}, {1.5f, 0.2f} });
+    platforms.push_back({ {81.5f, 2.4f}, {1.5f, 0.2f} });
+    platforms.push_back({ {83.5f, 3.0f}, {2.0f, 0.2f} });
+    platforms.push_back({ {86.0f, 2.2f}, {1.5f, 0.2f} });
+    platforms.push_back({ {88.0f, 1.4f}, {1.5f, 0.2f} });
+    platforms.push_back({ {90.0f, 0.6f}, {2.0f, 0.2f} });
+
+    // Goal platform - elevated finish line
+    platforms.push_back({ {93.0f, 1.5f}, {3.0f, 0.5f} });
 }
 
-void Game::update(bool left, bool right, bool jump) {
-    soundData.clear();
+    // Vertical climb section
+    platforms.push_back({ {46.0f, 2.0f}, {2.0f, 0.2f} });
+    platforms.push_back({ {47.5f, 3.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {46.0f, 4.0f}, {1.5f, 0.2f} });
+    platforms.push_back({ {47.5f, 5.0f}, {1.5f, 0.2f} });
 
-    // Player horizontal movement
-    if (left) {
-        player.velocityX = -MOVE_SPEED;
-        player.facingDirection = 1;
-    } else if (right) {
-        player.velocityX = MOVE_SPEED;
-        player.facingDirection = 0;
+    // Long jumps
+    platforms.push_back({ {49.5f, 5.5f}, {1.5f, 0.2f} });
+    platforms.push_back({ {52.0f, 6.0f}, {2.0f, 0.2f} });
+
+    // Final high platform
+    platforms.push_back({ {55.0f, 7.0f}, {2.0f, 0.2f} });
+}
+
+void Game::setSoundCallback(emscripten::val callback) {
+    soundCallback = callback;
+}
+
+void Game::setLevelCompleteCallback(emscripten::val callback) {
+    levelCompleteCallback = callback;
+}
+
+void Game::playSound(const std::string& soundName) {
+    if (!soundCallback.isNull()) {
+        soundCallback(soundName);
     }
-    player.rect.x += player.velocityX;
+}
 
-    // Horizontal collision with platforms
+void Game::loadLevel(const emscripten::val& level) {
+    // Expecting an object like: { spawn: {x,y}, platforms: [{position:{x,y}, size:{x,y}}, ...], bounds: {min:{x,y}, max:{x,y}}, goals: [...] }
+    if (level.isNull() || level.isUndefined()) return;
+    platforms.clear();
+    goals.clear();
+    goalTriggered.clear();
+    hasLevelBounds = false;
+
+    // spawn
+    if (level.hasOwnProperty("spawn")) {
+        emscripten::val spawn = level["spawn"];
+        if (!spawn.isNull() && !spawn.isUndefined() && spawn.hasOwnProperty("x") && spawn.hasOwnProperty("y")) {
+            playerPosition.x = spawn["x"].as<float>();
+            playerPosition.y = spawn["y"].as<float>();
+            playerVelocity = {0.0f, 0.0f};
+        }
+    }
+
+    // platforms
+    if (level.hasOwnProperty("platforms")) {
+        emscripten::val jsPlatforms = level["platforms"];
+        const unsigned length = jsPlatforms["length"].as<unsigned>();
+        for (unsigned i = 0; i < length; ++i) {
+            emscripten::val jsPlatform = jsPlatforms[i];
+            if (jsPlatform.hasOwnProperty("position") && jsPlatform.hasOwnProperty("size")) {
+                emscripten::val jsPosition = jsPlatform["position"];
+                emscripten::val jsSize = jsPlatform["size"];
+                if (jsPosition.hasOwnProperty("x") && jsPosition.hasOwnProperty("y") &&
+                    jsSize.hasOwnProperty("x") && jsSize.hasOwnProperty("y")) {
+                    Vec2 position = { jsPosition["x"].as<float>(), jsPosition["y"].as<float>() };
+                    Vec2 size = { jsSize["x"].as<float>(), jsSize["y"].as<float>() };
+                    platforms.push_back({ position, size });
+                }
+            }
+        }
+    }
+
+    // goals (optional)
+    if (level.hasOwnProperty("goals")) {
+        emscripten::val jsGoals = level["goals"];
+        const unsigned gLen = jsGoals["length"].as<unsigned>();
+        for (unsigned i = 0; i < gLen; ++i) {
+            emscripten::val jsGoal = jsGoals[i];
+            if (jsGoal.hasOwnProperty("position") && jsGoal.hasOwnProperty("size")) {
+                emscripten::val jsPosition = jsGoal["position"];
+                emscripten::val jsSize = jsGoal["size"];
+                if (jsPosition.hasOwnProperty("x") && jsPosition.hasOwnProperty("y") &&
+                    jsSize.hasOwnProperty("x") && jsSize.hasOwnProperty("y")) {
+                    Vec2 position = { jsPosition["x"].as<float>(), jsPosition["y"].as<float>() };
+                    Vec2 size = { jsSize["x"].as<float>(), jsSize["y"].as<float>() };
+                    goals.push_back({ position, size });
+                    goalTriggered.push_back(false);
+                }
+            }
+        }
+    }
+
+    // Optionally handle camera bounds if provided
+    if (level.hasOwnProperty("bounds")) {
+        emscripten::val bounds = level["bounds"];
+        if (bounds.hasOwnProperty("min") && bounds.hasOwnProperty("max")) {
+            emscripten::val min = bounds["min"];
+            emscripten::val max = bounds["max"];
+            if (min.hasOwnProperty("x") && min.hasOwnProperty("y") &&
+                max.hasOwnProperty("x") && max.hasOwnProperty("y")) {
+                levelMin = { min["x"].as<float>(), min["y"].as<float>() };
+                levelMax = { max["x"].as<float>(), max["y"].as<float>() };
+                hasLevelBounds = true;
+            }
+        }
+    }
+    // Set camera to player on load
+    cameraPosition.x = playerPosition.x;
+}
+
+
+void Game::handleInput(const InputState& input) {
+    if (input.left) {
+        playerVelocity.x = -moveSpeed;
+        playerAnimation.facingLeft = true;
+    } else if (input.right) {
+        playerVelocity.x = moveSpeed;
+        playerAnimation.facingLeft = false;
+    } else {
+        playerVelocity.x = 0;
+    }
+
+    // Jump logic
+    if (input.jump && isGrounded && canJump) {
+        playerVelocity.y = jumpStrength;
+        isGrounded = false;
+        canJump = false;
+        currentPlayerState = PlayerState::Jump;
+        playSound("jump");
+        
+        // Emit jump particles
+        for (int i = 0; i < 10; ++i) {
+            float angle = (rand() % 100 / 100.0f) * 3.14159f;
+            float speed = 1.0f + (rand() % 100 / 100.0f) * 2.0f;
+            Vec2 vel = { std::cos(angle) * speed * 0.5f, std::sin(angle) * speed * 0.5f };
+            Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
+            particleSystem.emit(pos, vel, 0.5f, 0.1f, (rand() % 100 - 50) * 0.1f);
+        }
+    }
+    if (!input.jump) {
+        canJump = true;
+    }
+}
+
+
+void Game::update(float deltaTime) {
+    particleSystem.update(deltaTime);
+
+    wasGrounded = isGrounded; // Store the state from the previous frame
+    isGrounded = false;
+    float groundCheckDistance = 0.05f;
+    Vec2 groundCheckPos = {playerPosition.x, playerPosition.y - playerSize.y / 2.0f - groundCheckDistance};
+    Vec2 groundCheckSize = {playerSize.x * 0.9f, 0.1f };
     for (const auto& platform : platforms) {
-        if (player.rect.x < platform.x + platform.width && player.rect.x + player.rect.width > platform.x &&
-            player.rect.y < platform.y + platform.height && player.rect.y + player.rect.height > platform.y) {
-            if (player.velocityX > 0) {
-                player.rect.x = platform.x - player.rect.width;
-            } else if (player.velocityX < 0) {
-                player.rect.x = platform.x + platform.width;
-            }
-            player.velocityX = 0;
+        if (checkCollision(groundCheckPos, groundCheckSize, platform.position, platform.size)) {
+            isGrounded = true;
+            break;
         }
     }
-
-    // Player vertical movement & gravity
-    player.velocityY += GRAVITY;
-    if (player.velocityY > MAX_FALL_SPEED) {
-        player.velocityY = MAX_FALL_SPEED;
+    if (isGrounded && !wasGrounded) {
+        playSound("land");
+        // Emit land particles
+        for (int i = 0; i < 10; ++i) {
+            float angle = (rand() % 100 / 100.0f) * 3.14159f; // 0 to PI
+            float speed = 1.0f + (rand() % 100 / 100.0f) * 2.0f;
+            Vec2 vel = { std::cos(angle) * speed, std::abs(std::sin(angle) * speed * 0.5f) }; 
+            Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
+            particleSystem.emit(pos, vel, 0.3f, 0.08f, (rand() % 100 - 50) * 0.1f);
+        }
     }
-    player.rect.y += player.velocityY;
-
-    // Vertical collision with platforms
-    player.onGround = false;
+    if (!isGrounded) {
+        playerVelocity.y += gravity * deltaTime;
+    } else {
+        playerVelocity.y = std::max(0.0f, playerVelocity.y);
+    }
+    playerPosition.y += playerVelocity.y * deltaTime;
     for (const auto& platform : platforms) {
-        if (player.rect.x < platform.x + platform.width && player.rect.x + player.rect.width > platform.x &&
-            player.rect.y < platform.y + platform.height && player.rect.y + player.rect.height > platform.y) {
-            if (player.velocityY > 0) {
-                player.rect.y = platform.y - player.rect.height;
-                player.velocityY = 0;
-                player.onGround = true;
-            } else if (player.velocityY < 0) {
-                player.rect.y = platform.y + platform.height;
-                player.velocityY = 0;
+        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
+            float playerHalfY = playerSize.y / 2.0f;
+            float platformHalfY = platform.size.y / 2.0f;
+            float deltaY = playerPosition.y - platform.position.y;
+            float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
+            if (deltaY > 0) { // Landing on top of a platform
+                playerPosition.y += penetrationY;
+                if (playerVelocity.y < 0) playerVelocity.y = 0;
+            } else { // Hitting a platform from below
+                playerPosition.y -= penetrationY;
+                if (playerVelocity.y > 0) playerVelocity.y = 0;
             }
         }
     }
-
-    // Jumping
-    if (jump && player.onGround) {
-        player.velocityY = JUMP_FORCE;
-        soundData.push_back(1.0f); // Sound ID for jump
-    }
-
-    // Apply friction
-    player.velocityX *= FRICTION;
-    if (std::abs(player.velocityX) < 0.1) {
-        player.velocityX = 0;
-    }
-    
-    // --- NEW: Enemy Logic ---
-    for (auto& enemy : enemies) {
-        if (enemy.isDefeated) continue;
-
-        // Simple back-and-forth movement
-        enemy.rect.x += enemy.velocityX;
-
-        // Enemy collision with platforms (turn around at edges or walls)
-        bool enemyOnGround = false;
-        for (const auto& platform : platforms) {
-            // Check for wall collision
-            if (enemy.rect.x < platform.x + platform.width && enemy.rect.x + enemy.rect.width > platform.x &&
-                enemy.rect.y < platform.y + platform.height && enemy.rect.y + enemy.rect.height > platform.y) {
-                 if(enemy.velocityX > 0) enemy.rect.x = platform.x - enemy.rect.width;
-                 else enemy.rect.x = platform.x + platform.width;
-                 enemy.velocityX *= -1; // Turn around
-                 enemy.facingDirection = (enemy.velocityX > 0) ? 0 : 1;
-            }
-        }
-
-        // --- NEW: Player-Enemy Collision Logic ---
-        if (!enemy.isDefeated && 
-            player.rect.x < enemy.rect.x + enemy.rect.width && player.rect.x + player.rect.width > enemy.rect.x &&
-            player.rect.y < enemy.rect.y + enemy.rect.height && player.rect.y + player.rect.height > enemy.rect.y)
-        {
-            // Check for stomp
-            bool isStomp = player.velocityY > 0 && (player.rect.y + player.rect.height) < (enemy.rect.y + STOMP_TOLERANCE);
-            if (isStomp) {
-                enemy.isDefeated = true;
-                player.velocityY = STOMP_BOUNCE_VELOCITY; // Give player a bounce
-                // Optional: add a "stomp" sound
-            } else {
-                // Player got hit, you can add damage logic here
-                // For now, let's just reset the player's position
-                player.rect.x = 100;
-                player.rect.y = 450;
-                player.velocityX = 0;
-                player.velocityY = 0;
-            }
+    playerPosition.x += playerVelocity.x * deltaTime;
+    for (const auto& platform : platforms) {
+        if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
+            float playerHalfX = playerSize.x / 2.0f;
+            float platformHalfX = platform.size.x / 2.0f;
+            float deltaX = playerPosition.x - platform.position.x;
+            float penetrationX = (playerHalfX + platformHalfX) - std::abs(deltaX);
+            if (deltaX > 0) playerPosition.x += penetrationX;
+            else playerPosition.x -= penetrationX;
+            playerVelocity.x = 0;
         }
     }
-
-    // Camera follow player
-    camera.x = player.rect.x - SCREEN_WIDTH / 2 + player.rect.width / 2;
-    camera.y = 0; // Static Y camera for now
-    if (camera.x < 0) camera.x = 0;
-}
-
-const std::vector<float>& Game::getRenderData() {
-    renderData.clear();
-    
-    // Player data
-    renderData.push_back(player.rect.x - camera.x);
-    renderData.push_back(player.rect.y - camera.y);
-    renderData.push_back(player.rect.width);
-    renderData.push_back(player.rect.height);
-    renderData.push_back(player.facingDirection == 1 ? 32.0f : 0.0f); // u (texture x)
-    renderData.push_back(0.0f); // v (texture y)
-    renderData.push_back(32.0f); // u_width
-    renderData.push_back(48.0f); // v_height
-
-    // Platform data
-    for (const auto& p : platforms) {
-        renderData.push_back(p.x - camera.x);
-        renderData.push_back(p.y - camera.y);
-        renderData.push_back(p.width);
-        renderData.push_back(p.height);
-        renderData.push_back(0.0f); renderData.push_back(64.0f); // Using platform texture
-        renderData.push_back(64.0f); renderData.push_back(64.0f);
-    }
-    
-    // --- NEW: Enemy Render Data ---
-    for (const auto& enemy : enemies) {
-        if(enemy.isDefeated) continue;
-        renderData.push_back(enemy.rect.x - camera.x);
-        renderData.push_back(enemy.rect.y - camera.y);
-        renderData.push_back(enemy.rect.width);
-        renderData.push_back(enemy.rect.height);
-        // Using a different part of the sprite sheet for the enemy
-        renderData.push_back(enemy.facingDirection == 1 ? 96.0f : 64.0f); // u
-        renderData.push_back(0.0f); // v
-        renderData.push_back(32.0f); // u_width
-        renderData.push_back(48.0f); // v_height
+    // State Machine Update
+    if (!isGrounded) {
+        if (playerVelocity.y > 0) currentPlayerState = PlayerState::Jump;
+        else currentPlayerState = PlayerState::Fall; // We can map Fall to Jump animation or a new one
+    } else if (std::abs(playerVelocity.x) > 0.01f) {
+        currentPlayerState = PlayerState::Run;
+        // Emit run particles occasionally
+        if ((rand() % 100) < 10) { 
+             Vec2 vel = { -playerVelocity.x * 0.5f, 0.5f + (rand() % 100 / 100.0f) };
+             Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
+             particleSystem.emit(pos, vel, 0.2f, 0.05f, (rand() % 100 - 50) * 0.1f);
+        }
+    } else {
+        currentPlayerState = PlayerState::Idle;
     }
 
-    return renderData;
-}
+    // Map State to String for JS
+    std::string newStateString = "idle";
+    switch (currentPlayerState) {
+        case PlayerState::Idle: newStateString = "idle"; break;
+        case PlayerState::Run: newStateString = "run"; break;
+        case PlayerState::Jump: newStateString = "jump"; break;
+        case PlayerState::Fall: newStateString = "jump"; break; // Re-use jump for now
+    }
 
+    if (newStateString != playerAnimation.currentState) {
+        playerAnimation.currentState = newStateString;
+        playerAnimation.currentFrame = 0;
+        animationTimer = 0.0f;
+    }
+    animationTimer += deltaTime;
+    float frameDuration = 0.25f;
+    while (animationTimer >= frameDuration) {
+        animationTimer -= frameDuration;
+        playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
+    }
+    cameraPosition.x = playerPosition.x;
+    // clamp camera to level bounds if provided
+    if (hasLevelBounds) {
+        if (cameraPosition.x < levelMin.x) cameraPosition.x = levelMin.x;
+        if (cameraPosition.x > levelMax.x) cameraPosition.x = levelMax.x;
+    }
 
-void Game::generateBackground() {
-    backgroundData.clear();
-    for (int i = 0; i < 20; ++i) { // 20 layers for parallax
-        backgroundData.push_back(i * 100.0f); // x
-        backgroundData.push_back(200.0f + sin(i * 0.5f) * 50); // y
-        backgroundData.push_back(1.0f + (i % 3)); // type
-        backgroundData.push_back(0.1f * i); // parallax factor
+    // check goals for completion
+    for (size_t i = 0; i < goals.size(); ++i) {
+        if (goalTriggered[i]) continue;
+        if (checkCollision(playerPosition, playerSize, goals[i].position, goals[i].size)) {
+            goalTriggered[i] = true;
+            if (!levelCompleteCallback.isNull()) {
+                levelCompleteCallback();
+            }
+        }
     }
 }
 
-const std::vector<float>& Game::getBackgroundData() {
-    return backgroundData;
+
+bool Game::checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB) {
+    bool collisionX = (posA.x - sizeA.x / 2.0f < posB.x + sizeB.x / 2.0f) &&
+                      (posA.x + sizeA.x / 2.0f > posB.x - sizeB.x / 2.0f);
+    bool collisionY = (posA.y - sizeA.y / 2.0f < posB.y + sizeB.y / 2.0f) &&
+                      (posA.y + sizeA.y / 2.0f > posB.y - sizeB.y / 2.0f);
+    return collisionX && collisionY;
 }
 
-const std::vector<float>& Game::getSoundData() {
-    return soundData;
-}
+
+Vec2 Game::getPlayerPosition() const { return playerPosition; }
+
+Vec2 Game::getPlayerSize() const { return playerSize; }
+
+const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
+
+Vec2 Game::getCameraPosition() const { return cameraPosition; }
+
+AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
+
+const std::vector<Particle>& Game::getParticles() const { return particleSystem.getParticles(); }

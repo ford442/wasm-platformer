@@ -38,3 +38,6 @@ Thumbs.db
 # Emscripten build artifacts
 src/wasm/main.js
 src/wasm/main.wasm
+
+# Emscripten SDK
+emsdk/
