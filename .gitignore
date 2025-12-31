@@ -15,6 +15,7 @@ build/
 *.js
 *.js.map
 *.html
+/public/filament.zbin
 
 # Node.js / TypeScript
 node_modules/
