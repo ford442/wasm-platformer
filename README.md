@@ -1,46 +1,79 @@
-#  WASM-Venture
+# Bolts & Volts
 
+**Two robot dogs. One very important delivery.**
 
-WASM-Venture is a 2D platformer adventure game that runs entirely in the browser, powered by C++ compiled to WebAssembly.🚀 
+Bolts & Volts are specialized **OLTS** (Omni-Language-Transfer-Service) units deployed on long-range space courier missions. They transport encrypted data, sensitive packages, and occasionally questionable cargo across dangerous routes.
 
+Bolts handles heavy, armored transport.  
+Volts handles high-tech logistics, holographics, and multi-format communication.
 
-The player controls Wazzy, a small, agile dog robot who has crash-landed on an unknown planet. The goal is to navigate a series of levels, collect scattered ship parts, and overcome obstacles to repair the ship and return home.🛠️
+Same bark. Different payload. Choose your chaos.
 
+## BOLTS & VOLTS
 
-Technical Architecture
-Core Logic: C++
-Compilation Target: WebAssembly (via Emscripten)
-Frontend/Bridge: TypeScript
-Rendering: WebGL2 vis HTML Canvas 📋
-Current Status: We are setting up the initial project structure, C++ to WASM compilation pipeline, and basic player rendering.🏗️ 
+| Unit      | Full Name                                           | Specialization                     |
+|-----------|-----------------------------------------------------|------------------------------------|
+| **BOLTS**     | **B**ody-**O**perated **L**ogistics **T**ransfer **S**ervice     | Heavy armored transport, physical operations, and heavy lifting |
+| **VOLTS**     | **V**ersatile **O**mni-**L**anguage **T**ransfer **S**ervice     | High-tech data handling, holographics, and multi-format communication |
 
+Both units are part of the **OLTS** program — a fleet of specialized robot couriers designed for long-distance, high-stakes deliveries across space.
 
-How to Build and Run (Placeholder)
+## Current Status
 
+Early development. The core 2D platformer foundation is in place and the goal right now is to make the game properly playable and testable.
 
-Prerequisites:
+- C++ game logic compiled to WebAssembly
+- Custom WebGL2 rendering
+- Working player physics, collision, and jumping
+- React frontend with game loop
 
-Emscripten SDKNode.js and npmTypeScript (npm install -g typescript)
+## Tone & Vibe
 
+Silly, but with real danger and action. Expect sarcastic robot dialogue, over-the-top threats (including robotic space cats), and gameplay that supports both physical platforming and tech-based problem solving.
 
-Build Steps:
+## Features (Current)
 
-Clone the repository:
+- Hybrid C++ / WebAssembly core
+- WebGL2 rendering
+- Platforming physics and collision
+- Level loading from JSON
+- Particle effects
+- Sound event hooks
 
-git clone https://github.com/ford442/wasm-platformer.git
+## Tech Stack
 
-cd wasm-platformer
+- **Core Logic**: C++ → WebAssembly (Emscripten)
+- **Rendering**: Custom WebGL2
+- **Frontend**: React + TypeScript + Vite
+- **Physics**: Custom implementation in C++
 
+## Getting Started
 
-Compile the C++ code to WebAssembly:
-
-emcc cpp/src/main.cpp cpp/src/Game.cpp -o public/game.js -O3 -s WASM=1 -s MODULARIZE=1 -s 'EXPORT_NAME="createGameModule"' -lembind
-
-
-Compile the TypeScript code:
-
+```bash
+git clone https://github.com/ford442/bolts_and_volts.git
+cd bolts_and_volts
 npm install
+npm run dev
+Current Focus
+Making the base platformer level feel good and stable so we can start properly testing and building on top of it. Dual-character mechanics and mission structure will come after the foundation is solid.
+Story Direction (Early)
+Bolts and Volts are deployed on distant space delivery missions. Their job is to get the payload where it needs to go — while dealing with interference from robotic space cats and other hazards.
+The tone sits somewhere between:
 
-mkdir -p public/materials
+"BARK BARK. Payload delivered. Please sign for dents."
+Actual danger and action when things go wrong.
 
-npm run build
+More OLTS units with specialized roles may appear later.
+Project Structure
+textbolts_and_volts/
+├── cpp/src/           # C++ game systems
+├── src/gl/            # WebGL2 rendering
+├── src/components/    # React game UI
+├── levels/            # JSON level data
+└── public/
+Next Steps (Planned)
+
+Improve core platforming feel and level design
+Flesh out basic dual-dog switching / ability differences
+Add simple mission structure and hazards
+Lean into the humorous tone with light dialogue and personality
