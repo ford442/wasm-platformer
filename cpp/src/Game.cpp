@@ -19,6 +19,7 @@ Game::Game() {
     jumpBufferTimer = 0.0f;
     jumpHeld = false;
     jumpBuffered = false;
+    targetMoveVelocity = 0.0f;
     soundCallback = emscripten::val::null();
     levelCompleteCallback = emscripten::val::null();
 
@@ -167,8 +168,8 @@ void Game::handleInput(const InputState& input) {
         playerAnimation.facingLeft = false;
     }
 
-    // Apply acceleration-based movement
-    applyMovementPhysics(0.016f, targetVelX); // Use fixed step for input response consistency
+    // Store target velocity; actual acceleration is applied in update() with real deltaTime
+    this->targetMoveVelocity = targetVelX;
 
     // Jump input buffering: if jump is pressed, buffer it for a short window
     if (input.jump && !jumpHeld) {
@@ -292,6 +293,9 @@ void Game::update(float deltaTime) {
     // Safety clamp: prevent tunneling on lag/tab-switch
     if (deltaTime > 0.033f) deltaTime = 0.033f;
 
+    // Apply acceleration-based movement with real deltaTime
+    applyMovementPhysics(deltaTime, targetMoveVelocity);
+
     particleSystem.update(deltaTime);
     updateAbility(deltaTime);
 
@@ -343,10 +347,9 @@ void Game::update(float deltaTime) {
         if (coyoteTimer > 0.0f) {
             coyoteTimer -= deltaTime;
         }
-        // Cancel hover ability on landing (Volts)
     } else {
         coyoteTimer = Physics::COYOTE_TIME;
-        // End hover if grounded
+        // End hover if player lands while it's active (Volts)
         if (abilityState == AbilityState::Active && currentCharacter == CharacterType::Volts) {
             abilityState = AbilityState::Cooldown;
             abilityCooldownTimer = CharacterStats::VOLTS_HOVER_COOLDOWN;

@@ -74,6 +74,7 @@ private:
     float abilityCooldownTimer = 0.0f;
     float abilityActiveTimer = 0.0f;
     bool abilityKeyWasPressed = false;  // For one-shot ability activation
+    float targetMoveVelocity = 0.0f;   // Set by handleInput, applied in update with real deltaTime
 };
 
 
