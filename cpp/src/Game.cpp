@@ -14,6 +14,8 @@ Game::Game() {
     isGrounded = false;
     wasGrounded = false; // Initialize previous grounded state
     canJump = true;
+    coyoteTimer = 0.0f;
+    jumpHeld = false;
     soundCallback = emscripten::val::null(); // Initialize callback to null
     levelCompleteCallback = emscripten::val::null();
 
@@ -183,21 +185,24 @@ void Game::loadLevel(const emscripten::val& level) {
 
 
 void Game::handleInput(const InputState& input) {
+    const float currentMoveSpeed = getMoveSpeed();
     if (input.left) {
-        playerVelocity.x = -moveSpeed;
+        playerVelocity.x = -currentMoveSpeed;
         playerAnimation.facingLeft = true;
     } else if (input.right) {
-        playerVelocity.x = moveSpeed;
+        playerVelocity.x = currentMoveSpeed;
         playerAnimation.facingLeft = false;
     } else {
         playerVelocity.x = 0;
     }
 
-    // Jump logic
-    if (input.jump && isGrounded && canJump) {
-        playerVelocity.y = jumpStrength;
+    // Jump logic (with coyote time + variable height via cut on release)
+    const bool canCoyoteJump = (isGrounded || coyoteTimer > 0.0f);
+    if (input.jump && canCoyoteJump && canJump) {
+        playerVelocity.y = getJumpStrength();
         isGrounded = false;
         canJump = false;
+        coyoteTimer = 0.0f; // consume coyote grace
         currentPlayerState = PlayerState::Jump;
         playSound("jump");
         
@@ -210,13 +215,25 @@ void Game::handleInput(const InputState& input) {
             particleSystem.emit(pos, vel, 0.5f, 0.1f, (rand() % 100 - 50) * 0.1f);
         }
     }
-    if (!input.jump) {
+
+    // Track jump button state for one-shot variable jump height (cut)
+    if (input.jump) {
+        jumpHeld = true;
+    } else {
+        if (jumpHeld && playerVelocity.y > 0.0f) {
+            // Player released jump while still rising → shorter hop
+            playerVelocity.y *= JUMP_CUT_MULTIPLIER;
+        }
+        jumpHeld = false;
         canJump = true;
     }
 }
 
 
 void Game::update(float deltaTime) {
+    // Safety clamp: variable rAF dt can be huge on lag/tab-switch and cause tunneling through thin platforms
+    if (deltaTime > 0.033f) deltaTime = 0.033f;
+
     particleSystem.update(deltaTime);
 
     wasGrounded = isGrounded; // Store the state from the previous frame
@@ -240,6 +257,15 @@ void Game::update(float deltaTime) {
             Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
             particleSystem.emit(pos, vel, 0.3f, 0.08f, (rand() % 100 - 50) * 0.1f);
         }
+        coyoteTimer = COYOTE_TIME; // refresh on landing
+    } else if (!isGrounded) {
+        // Decay coyote timer while in the air (gives a short grace window after leaving a platform)
+        if (coyoteTimer > 0.0f) {
+            coyoteTimer -= deltaTime;
+        }
+    } else {
+        // Standing on ground
+        coyoteTimer = COYOTE_TIME;
     }
     if (!isGrounded) {
         playerVelocity.y += gravity * deltaTime;
@@ -350,3 +376,36 @@ Vec2 Game::getCameraPosition() const { return cameraPosition; }
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
 
 const std::vector<Particle>& Game::getParticles() const { return particleSystem.getParticles(); }
+
+// === Bolts & Volts character groundwork (minimal, additive) ===
+
+float Game::getMoveSpeed() const {
+    // Bolts: slightly more deliberate/heavy; Volts: a bit quicker
+    return (currentCharacter == CharacterType::Bolts) ? 1.85f : 2.15f;
+}
+
+float Game::getJumpStrength() const {
+    // Bolts: powerful but lower arc (tankier); Volts: springier for vertical tech movement
+    return (currentCharacter == CharacterType::Bolts) ? 5.6f : 6.85f;
+}
+
+void Game::switchCharacter() {
+    currentCharacter = (currentCharacter == CharacterType::Bolts)
+        ? CharacterType::Volts
+        : CharacterType::Bolts;
+
+    // Light feedback: small particle puff + zero horizontal velocity on switch (feels like a "mode shift")
+    playerVelocity.x *= 0.3f;
+    for (int i = 0; i < 6; ++i) {
+        float angle = (rand() % 100 / 100.0f) * 6.28f;
+        float spd = 0.8f + (rand() % 100 / 100.0f) * 1.2f;
+        Vec2 vel = { std::cos(angle) * spd, std::sin(angle) * spd * 0.6f };
+        Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y * 0.3f };
+        particleSystem.emit(pos, vel, 0.35f, 0.07f, (rand() % 100 - 50) * 0.08f);
+    }
+    // Future: different sound per character, different particles, ability cooldowns, etc.
+}
+
+int Game::getCurrentCharacter() const {
+    return static_cast<int>(currentCharacter);
+}

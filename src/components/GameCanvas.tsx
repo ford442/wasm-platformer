@@ -21,11 +21,17 @@ const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
+    'KeyR': false, // used for level reload (one-shot via keydown handler)
+    'KeyC': false, // character switch (Bolts <-> Volts) - groundwork
   });
   const audioManagerRef = useRef<AudioManager | null>(null);
+  const levelGoalsRef = useRef<Platform[]>([]); // captured from level JSON for goal visualization (no C++ getGoals yet)
+  const gameInstanceRef = useRef<Game | null>(null);
+  const reloadLevelRef = useRef<(() => void) | null>(null);
   const [volume, setVolume] = useState(0.5);
   const [levelComplete, setLevelComplete] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
+  const [currentCharacter, setCurrentCharacter] = useState<'BOLTS' | 'VOLTS'>('BOLTS');
 
   useEffect(() => {
     audioManagerRef.current = new AudioManager();
@@ -36,6 +42,24 @@ const GameCanvas = () => {
       if (e.code in keysRef.current) keysRef.current[e.code] = true;
       audioManager.resumeContext();
       audioManager.playMusic();
+
+      // R key: reload current level JSON (great for iterating on map design)
+      if (e.code === 'KeyR') {
+        reloadLevelRef.current?.();
+        keysRef.current['KeyR'] = false;
+      }
+
+      // C key: switch between Bolts and Volts (groundwork - only does something after WASM rebuild with the new bindings)
+      if (e.code === 'KeyC') {
+        const gi = gameInstanceRef.current as any;
+        if (gi && typeof gi.switchCharacter === 'function') {
+          gi.switchCharacter();
+          // Update local UI label (will reflect after next frame poll too)
+          const newChar = (gi.getCurrentCharacter && gi.getCurrentCharacter() === 1) ? 'VOLTS' : 'BOLTS';
+          setCurrentCharacter(newChar);
+        }
+        keysRef.current['KeyC'] = false;
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code in keysRef.current) keysRef.current[e.code] = false;
@@ -82,6 +106,10 @@ const GameCanvas = () => {
           const levelResp = await fetch('/levels/test-1.json');
           if (levelResp.ok) {
             const levelObj = await levelResp.json();
+            // Capture goals for rendering (they are triggers only in WASM; this gives the player a visible target).
+            levelGoalsRef.current = Array.isArray(levelObj?.goals)
+              ? levelObj.goals.map((g: any) => ({ position: g.position, size: g.size })) as Platform[]
+              : [];
             // Pass the raw JS object to embind; Game::loadLevel will parse it.
             (gameInstance as any).loadLevel(levelObj);
           } else {
@@ -90,6 +118,31 @@ const GameCanvas = () => {
         } catch (err) {
           console.warn('Error loading level JSON:', err);
         }
+
+        // Reload function exposed via ref so the global key handler (in the other effect) can call it.
+        // Re-fetches the JSON (so map changes are picked up live) and resets the game state.
+        const reloadLevel = async () => {
+          if (!gameInstance) return;
+          try {
+            const levelResp = await fetch('/levels/test-1.json?ts=' + Date.now()); // cache-bust for rapid iteration
+            if (levelResp.ok) {
+              const levelObj = await levelResp.json();
+              levelGoalsRef.current = Array.isArray(levelObj?.goals)
+                ? levelObj.goals.map((g: any) => ({ position: g.position, size: g.size })) as Platform[]
+                : [];
+              (gameInstance as any).loadLevel(levelObj);
+              setLevelComplete(false);
+              // Clear any stuck key state for R
+              keysRef.current['KeyR'] = false;
+            }
+          } catch (e) {
+            console.warn('Failed to reload level on R key:', e);
+          }
+        };
+        reloadLevelRef.current = reloadLevel;
+
+        // Make the live game instance available to the R-key handler in the first useEffect
+        gameInstanceRef.current = gameInstance;
 
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
         const [playerTexture, platformTexture, backgroundTexture] = await Promise.all([
@@ -109,6 +162,18 @@ const GameCanvas = () => {
             jump: keysRef.current['Space'],
           };
           gameInstance.handleInput(inputState);
+
+          // Character switch polling (defensive - the KeyC handler above is primary)
+          if (keysRef.current['KeyC']) {
+            const gi = gameInstance as any;
+            if (gi && typeof gi.switchCharacter === 'function') {
+              gi.switchCharacter();
+              const ch = (gi.getCurrentCharacter && gi.getCurrentCharacter() === 1) ? 'VOLTS' : 'BOLTS';
+              setCurrentCharacter(ch);
+            }
+            keysRef.current['KeyC'] = false;
+          }
+
           gameInstance.update(deltaTime);
           const playerPosition = gameInstance.getPlayerPosition();
           const cameraPosition = gameInstance.getCameraPosition();
@@ -137,9 +202,11 @@ const GameCanvas = () => {
           }
           const playerBottom = playerPosition.y - playerSize.y / 2;
           const delta = nearestTop !== null ? (playerBottom - nearestTop) : null;
-          setDebugInfo(`playerY: ${playerPosition.y.toFixed(3)} bottom: ${playerBottom.toFixed(3)} platformTop: ${nearestTop !== null ? nearestTop.toFixed(3) : 'N/A'} delta: ${delta !== null ? delta.toFixed(3) : 'N/A'}`);
+          const charLabel = currentCharacter; // BOLTS / VOLTS (updates on switch)
+          setDebugInfo(`[${charLabel}] playerY: ${playerPosition.y.toFixed(3)} bottom: ${playerBottom.toFixed(3)} platformTop: ${nearestTop !== null ? nearestTop.toFixed(3) : 'N/A'} delta: ${delta !== null ? delta.toFixed(3) : 'N/A'}`);
 
-          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, jsParticles, playerTexture, platformTexture, backgroundTexture, playerAnim);
+          const charForRenderer = currentCharacter === 'VOLTS' ? 1 : 0;
+          renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, jsParticles, playerTexture, platformTexture, backgroundTexture, playerAnim, levelGoalsRef.current, charForRenderer);
           animationFrameId = requestAnimationFrame(gameLoop);
         };
         animationFrameId = requestAnimationFrame(gameLoop);
@@ -152,6 +219,8 @@ const GameCanvas = () => {
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      reloadLevelRef.current = null;
+      gameInstanceRef.current = null;
       if (gameInstance) gameInstance.delete();
     };
   }, []);
@@ -173,7 +242,7 @@ const GameCanvas = () => {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <canvas ref={canvasRef} width={1280} height={720} style={canvasStyle} />
-      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
         <input
           type="range"
           min="0"
@@ -182,6 +251,9 @@ const GameCanvas = () => {
           value={volume}
           onChange={handleVolumeChange}
         />
+        <div style={{ fontSize: '11px', opacity: 0.7, fontFamily: 'monospace', color: '#0ff' }}>
+          R: reload map • C: switch dog (Bolts/Volts)
+        </div>
       </div>
       <div style={{ position: 'absolute', left: '10px', top: '10px', zIndex: 30, color: '#0ff', background: 'rgba(0,0,0,0.6)', padding: '6px', fontFamily: 'monospace', fontSize: '12px', borderRadius: '4px' }}>
         {debugInfo}

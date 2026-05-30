@@ -46,5 +46,8 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("getPlayerSize", &Game::getPlayerSize)
         .function("setSoundCallback", &Game::setSoundCallback)
         .function("loadLevel", &Game::loadLevel)
-        .function("setLevelCompleteCallback", &Game::setLevelCompleteCallback);
+        .function("setLevelCompleteCallback", &Game::setLevelCompleteCallback)
+        // Bolts & Volts two-character groundwork
+        .function("switchCharacter", &Game::switchCharacter)
+        .function("getCurrentCharacter", &Game::getCurrentCharacter);
 }

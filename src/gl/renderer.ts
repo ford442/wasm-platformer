@@ -41,6 +41,7 @@ export class Renderer {
   private debugRedTexture: TextureObject | null = null;
   private debugGreenTexture: TextureObject | null = null;
   private whiteTexture: TextureObject | null = null;
+  private debugCyanTexture: TextureObject | null = null; // used for goal visualization (playability win)
 
 
   constructor(canvas: HTMLCanvasElement, spriteVsSource: string, spriteFsSource: string, bgVsSource: string, bgFsSource: string) {
@@ -75,6 +76,7 @@ export class Renderer {
     this.debugRedTexture = this.createSolidTexture([255, 0, 0, 128]);
     this.debugGreenTexture = this.createSolidTexture([0, 255, 0, 128]);
     this.whiteTexture = this.createSolidTexture([255, 255, 255, 255]);
+    this.debugCyanTexture = this.createSolidTexture([0, 255, 255, 170]); // cyan goals (visible target)
   }
 
   private compileShader(type: number, source: string): WebGLShader {
@@ -259,7 +261,7 @@ export class Renderer {
     return { texture: tex, width: 1, height: 1 };
   }
 
-  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], particles: Particle[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null) {
+  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], particles: Particle[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null, goals: Platform[] = [], character: number = 0) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     if (backgroundTexture) { this.drawBackground(cameraPosition, backgroundTexture); }
@@ -282,6 +284,14 @@ export class Renderer {
       for (const platform of platforms) {
         // platform collision box: use platform.position and platform.size
         this.drawSprite({ x: platform.position.x, y: platform.position.y }, { x: platform.size.x, y: platform.size.y }, this.debugGreenTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
+      }
+    }
+
+    // Draw goals as bright cyan boxes so the player has a clear, visible target (Phase 1 playability fix).
+    // Goals are triggers, not solid — drawn on top of platforms but under the player sprite.
+    if (this.debugCyanTexture && goals.length > 0) {
+      for (const goal of goals) {
+        this.drawSprite(goal.position, goal.size, this.debugCyanTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
       }
     }
 
@@ -308,6 +318,9 @@ export class Renderer {
       const frameCoord = { x: frame * animData.frameSize.x, y: animData.row * animData.frameSize.y };
       // pass visualYOffset so sprite is nudged down to sit on platform
       this.drawSprite(playerPosition, playerSize, playerTexture, { x: playerTexture.width, y: playerTexture.height }, animData.frameSize, frameCoord, playerAnim.facingLeft, visualYOffset);
+
+      // character param received (0=Bolts, 1=Volts). Future: different tint, atlas row offset, or separate texture.
+      // For now the debug UI + mechanical differences (speed/jump) provide the differentiation.
 
       // draw player collision box
       if (this.debugRedTexture) {

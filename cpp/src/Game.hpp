@@ -22,6 +22,13 @@ public:
     const std::vector<Platform>& getPlatforms() const;
     const std::vector<Particle>& getParticles() const;
     AnimationState getPlayerAnimationState() const;
+
+    // === Two-character (Bolts & Volts) groundwork - public API ===
+    float getMoveSpeed() const;
+    float getJumpStrength() const;
+    void switchCharacter();
+    int getCurrentCharacter() const; // 0 = Bolts, 1 = Volts
+
 private:
     void playSound(const std::string& soundName);
     bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
@@ -42,12 +49,22 @@ private:
     bool isGrounded = false;
     bool wasGrounded = false; // New: To track state changes for landing sound
     bool canJump = true;
+
+    // Platforming feel tunables (coyote time + variable jump height cut)
+    float coyoteTimer = 0.0f;
+    bool jumpHeld = false;     // used for one-shot jump cut on release
+    static constexpr float COYOTE_TIME = 0.10f;
+    static constexpr float JUMP_CUT_MULTIPLIER = 0.50f;
+
     emscripten::val soundCallback;
     emscripten::val levelCompleteCallback;
     Vec2 levelMin{ -1e6f, -1e6f };
     Vec2 levelMax{ 1e6f, 1e6f };
     bool hasLevelBounds = false;
     ParticleSystem particleSystem;
+
+    // Internal state for two-character system
+    CharacterType currentCharacter = CharacterType::Bolts;
 };
 
 

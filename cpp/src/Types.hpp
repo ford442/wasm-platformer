@@ -17,6 +17,12 @@ enum class PlayerState {
     Fall
 };
 
+// Character identity for Bolts & Volts (additive, non-breaking groundwork)
+enum class CharacterType {
+    Bolts = 0,   // Physical / armored / heavy lifting feel
+    Volts = 1    // Tech / hologram / agile feel
+};
+
 struct AnimationState {
     std::string currentState;
     int currentFrame;
