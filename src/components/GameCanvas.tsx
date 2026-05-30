@@ -21,11 +21,12 @@ const GameCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysRef = useRef<Record<string, boolean>>({
     'ArrowLeft': false, 'ArrowRight': false, 'Space': false,
-    'KeyR': false, // used for level reload (one-shot via keydown handler)
-    'KeyC': false, // character switch (Bolts <-> Volts) - groundwork
+    'KeyR': false,  // level reload (one-shot)
+    'KeyC': false,  // character switch (Bolts <-> Volts)
+    'KeyE': false,  // ability key
   });
   const audioManagerRef = useRef<AudioManager | null>(null);
-  const levelGoalsRef = useRef<Platform[]>([]); // captured from level JSON for goal visualization (no C++ getGoals yet)
+  const levelGoalsRef = useRef<Platform[]>([]);
   const gameInstanceRef = useRef<Game | null>(null);
   const reloadLevelRef = useRef<(() => void) | null>(null);
   const [volume, setVolume] = useState(0.5);
@@ -49,13 +50,12 @@ const GameCanvas = () => {
         keysRef.current['KeyR'] = false;
       }
 
-      // C key: switch between Bolts and Volts (groundwork - only does something after WASM rebuild with the new bindings)
+      // C key: switch between Bolts and Volts
       if (e.code === 'KeyC') {
-        const gi = gameInstanceRef.current as any;
-        if (gi && typeof gi.switchCharacter === 'function') {
+        const gi = gameInstanceRef.current;
+        if (gi) {
           gi.switchCharacter();
-          // Update local UI label (will reflect after next frame poll too)
-          const newChar = (gi.getCurrentCharacter && gi.getCurrentCharacter() === 1) ? 'VOLTS' : 'BOLTS';
+          const newChar = gi.getCurrentCharacter() === 1 ? 'VOLTS' : 'BOLTS';
           setCurrentCharacter(newChar);
         }
         keysRef.current['KeyC'] = false;
@@ -96,22 +96,20 @@ const GameCanvas = () => {
         gameInstance = new wasmModule.Game();
         gameInstance.setSoundCallback(handleSoundEvent);
 
-        // Register level complete callback: will be called from WASM when a goal is reached
-        (gameInstance as any).setLevelCompleteCallback(() => {
+        // Register level complete callback
+        gameInstance.setLevelCompleteCallback(() => {
           setLevelComplete(true);
         });
 
-        // Load a predefined test level JSON from public/levels/test-1.json and pass it into the WASM game.
+        // Load level JSON
         try {
           const levelResp = await fetch('/levels/test-1.json');
           if (levelResp.ok) {
             const levelObj = await levelResp.json();
-            // Capture goals for rendering (they are triggers only in WASM; this gives the player a visible target).
             levelGoalsRef.current = Array.isArray(levelObj?.goals)
               ? levelObj.goals.map((g: any) => ({ position: g.position, size: g.size })) as Platform[]
               : [];
-            // Pass the raw JS object to embind; Game::loadLevel will parse it.
-            (gameInstance as any).loadLevel(levelObj);
+            gameInstance.loadLevel(levelObj);
           } else {
             console.warn('Failed to fetch level JSON:', levelResp.status);
           }
@@ -119,20 +117,18 @@ const GameCanvas = () => {
           console.warn('Error loading level JSON:', err);
         }
 
-        // Reload function exposed via ref so the global key handler (in the other effect) can call it.
-        // Re-fetches the JSON (so map changes are picked up live) and resets the game state.
+        // Reload function for rapid iteration (R key)
         const reloadLevel = async () => {
           if (!gameInstance) return;
           try {
-            const levelResp = await fetch('/levels/test-1.json?ts=' + Date.now()); // cache-bust for rapid iteration
+            const levelResp = await fetch('/levels/test-1.json?ts=' + Date.now());
             if (levelResp.ok) {
               const levelObj = await levelResp.json();
               levelGoalsRef.current = Array.isArray(levelObj?.goals)
                 ? levelObj.goals.map((g: any) => ({ position: g.position, size: g.size })) as Platform[]
                 : [];
-              (gameInstance as any).loadLevel(levelObj);
+              gameInstance.loadLevel(levelObj);
               setLevelComplete(false);
-              // Clear any stuck key state for R
               keysRef.current['KeyR'] = false;
             }
           } catch (e) {
@@ -140,8 +136,6 @@ const GameCanvas = () => {
           }
         };
         reloadLevelRef.current = reloadLevel;
-
-        // Make the live game instance available to the R-key handler in the first useEffect
         gameInstanceRef.current = gameInstance;
 
         const renderer = new Renderer(canvas, vertexShaderSource, fragmentShaderSource, backgroundVertexSource, backgroundFragmentSource);
@@ -160,21 +154,11 @@ const GameCanvas = () => {
             left: keysRef.current['ArrowLeft'],
             right: keysRef.current['ArrowRight'],
             jump: keysRef.current['Space'],
+            abilityKey: keysRef.current['KeyE'],
           };
           gameInstance.handleInput(inputState);
-
-          // Character switch polling (defensive - the KeyC handler above is primary)
-          if (keysRef.current['KeyC']) {
-            const gi = gameInstance as any;
-            if (gi && typeof gi.switchCharacter === 'function') {
-              gi.switchCharacter();
-              const ch = (gi.getCurrentCharacter && gi.getCurrentCharacter() === 1) ? 'VOLTS' : 'BOLTS';
-              setCurrentCharacter(ch);
-            }
-            keysRef.current['KeyC'] = false;
-          }
-
           gameInstance.update(deltaTime);
+
           const playerPosition = gameInstance.getPlayerPosition();
           const cameraPosition = gameInstance.getCameraPosition();
           const wasmPlatforms = gameInstance.getPlatforms();
@@ -190,20 +174,13 @@ const GameCanvas = () => {
             jsParticles.push(wasmParticles.get(i));
           }
 
-          // Debug: compute nearest platform top under the player horizontally
-          let nearestTop: number | null = null;
-          for (const p of jsPlatforms) {
-            const pxMin = p.position.x - p.size.x / 2;
-            const pxMax = p.position.x + p.size.x / 2;
-            if (playerPosition.x >= pxMin - 0.01 && playerPosition.x <= pxMax + 0.01) {
-              const top = p.position.y + p.size.y / 2;
-              if (nearestTop === null || top > nearestTop) nearestTop = top;
-            }
-          }
-          const playerBottom = playerPosition.y - playerSize.y / 2;
-          const delta = nearestTop !== null ? (playerBottom - nearestTop) : null;
-          const charLabel = currentCharacter; // BOLTS / VOLTS (updates on switch)
-          setDebugInfo(`[${charLabel}] playerY: ${playerPosition.y.toFixed(3)} bottom: ${playerBottom.toFixed(3)} platformTop: ${nearestTop !== null ? nearestTop.toFixed(3) : 'N/A'} delta: ${delta !== null ? delta.toFixed(3) : 'N/A'}`);
+          // Ability state for HUD
+          const abilityState = gameInstance.getAbilityState();
+          const abilityCooldown = gameInstance.getAbilityCooldownPercent();
+          const abilityLabel = currentCharacter === 'BOLTS' ? 'Ground Pound' : 'Hover';
+          const abilityStatus = abilityState === 0 ? 'READY' : abilityState === 1 ? 'ACTIVE' : `CD ${Math.ceil(abilityCooldown * 100)}%`;
+
+          setDebugInfo(`[${currentCharacter}] pos: ${playerPosition.x.toFixed(1)},${playerPosition.y.toFixed(1)} | ${abilityLabel}: ${abilityStatus}`);
 
           const charForRenderer = currentCharacter === 'VOLTS' ? 1 : 0;
           renderer.drawScene(cameraPosition, playerPosition, playerSize, jsPlatforms, jsParticles, playerTexture, platformTexture, backgroundTexture, playerAnim, levelGoalsRef.current, charForRenderer);
@@ -252,7 +229,7 @@ const GameCanvas = () => {
           onChange={handleVolumeChange}
         />
         <div style={{ fontSize: '11px', opacity: 0.7, fontFamily: 'monospace', color: '#0ff' }}>
-          R: reload map • C: switch dog (Bolts/Volts)
+          R: reload map • C: switch dog • E: ability
         </div>
       </div>
       <div style={{ position: 'absolute', left: '10px', top: '10px', zIndex: 30, color: '#0ff', background: 'rgba(0,0,0,0.6)', padding: '6px', fontFamily: 'monospace', fontSize: '12px', borderRadius: '4px' }}>

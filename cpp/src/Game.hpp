@@ -15,7 +15,7 @@ public:
     void handleInput(const InputState& input);
     void setSoundCallback(emscripten::val callback);
     void loadLevel(const emscripten::val& level);
-    void setLevelCompleteCallback(emscripten::val callback); // New: set a JS callback that's invoked when a level goal is reached
+    void setLevelCompleteCallback(emscripten::val callback);
     Vec2 getPlayerPosition() const;
     Vec2 getPlayerSize() const;
     Vec2 getCameraPosition() const;
@@ -23,38 +23,43 @@ public:
     const std::vector<Particle>& getParticles() const;
     AnimationState getPlayerAnimationState() const;
 
-    // === Two-character (Bolts & Volts) groundwork - public API ===
+    // === Two-character (Bolts & Volts) API ===
     float getMoveSpeed() const;
     float getJumpStrength() const;
     void switchCharacter();
     int getCurrentCharacter() const; // 0 = Bolts, 1 = Volts
+    void useAbility();              // Activate character-specific ability
+    int getAbilityState() const;    // 0 = Ready, 1 = Active, 2 = Cooldown
+    float getAbilityCooldownPercent() const; // 0.0 to 1.0
 
 private:
     void playSound(const std::string& soundName);
     bool checkCollision(const Vec2& posA, const Vec2& sizeA, const Vec2& posB, const Vec2& sizeB);
+    void updateAbility(float deltaTime);
+    void applyMovementPhysics(float deltaTime, float targetVelX);
+
     Vec2 playerPosition;
     Vec2 playerVelocity;
     Vec2 playerSize;
     Vec2 cameraPosition;
+    float cameraTargetX = 0.0f;
 
     AnimationState playerAnimation;
     PlayerState currentPlayerState = PlayerState::Idle;
     float animationTimer = 0.0f;
     std::vector<Platform> platforms;
-    std::vector<Platform> goals; // Goals are similar to platforms but trigger level completion when touched
+    std::vector<Platform> goals;
     std::vector<bool> goalTriggered;
-    const float gravity = -9.8f * 2.5f;
-    const float moveSpeed = 2.0f;
-    const float jumpStrength = 6.0f;
+
     bool isGrounded = false;
-    bool wasGrounded = false; // New: To track state changes for landing sound
+    bool wasGrounded = false;
     bool canJump = true;
 
-    // Platforming feel tunables (coyote time + variable jump height cut)
+    // Platforming feel tunables
     float coyoteTimer = 0.0f;
-    bool jumpHeld = false;     // used for one-shot jump cut on release
-    static constexpr float COYOTE_TIME = 0.10f;
-    static constexpr float JUMP_CUT_MULTIPLIER = 0.50f;
+    float jumpBufferTimer = 0.0f;  // Input buffering for jump
+    bool jumpHeld = false;
+    bool jumpBuffered = false;     // Jump was pressed recently (within buffer window)
 
     emscripten::val soundCallback;
     emscripten::val levelCompleteCallback;
@@ -63,8 +68,13 @@ private:
     bool hasLevelBounds = false;
     ParticleSystem particleSystem;
 
-    // Internal state for two-character system
+    // Two-character system
     CharacterType currentCharacter = CharacterType::Bolts;
+    AbilityState abilityState = AbilityState::Ready;
+    float abilityCooldownTimer = 0.0f;
+    float abilityActiveTimer = 0.0f;
+    bool abilityKeyWasPressed = false;  // For one-shot ability activation
+    float targetMoveVelocity = 0.0f;   // Set by handleInput, applied in update with real deltaTime
 };
 
 
