@@ -1,57 +1,39 @@
 {
-  "name": "Intro - First Jumps (Bolts & Volts)",
-  "spawn": { "x": -1.5, "y": -2.0 },
-  "bounds": { "min": { "x": -4.0, "y": -7.0 }, "max": { "x": 26.0, "y": 6.0 } },
+  "name": "Voltage Valley - First Steps",
+  "description": "Learn to run, jump, and use character abilities. Bolts can ground-pound through the air, Volts can hover!",
+  "spawn": { "x": -2.0, "y": -1.5 },
+  "bounds": { "min": { "x": -4.0, "y": -8.0 }, "max": { "x": 52.0, "y": 8.0 } },
   "platforms": [
-    {
-      "position": { "x": 10.0, "y": -2.92 },
-      "size": { "x": 38.0, "y": 0.36 }
-    },
-    {
-      "position": { "x": 0.0, "y": -2.35 },
-      "size": { "x": 3.0, "y": 0.24 }
-    },
-    {
-      "position": { "x": 3.4, "y": -2.02 },
-      "size": { "x": 2.1, "y": 0.22 }
-    },
-    {
-      "position": { "x": 6.0, "y": -1.68 },
-      "size": { "x": 2.3, "y": 0.22 }
-    },
-    {
-      "position": { "x": 8.7, "y": -1.32 },
-      "size": { "x": 1.8, "y": 0.22 }
-    },
-    {
-      "position": { "x": 11.0, "y": -0.95 },
-      "size": { "x": 0.75, "y": 0.20 }
-    },
-    {
-      "position": { "x": 13.0, "y": -1.18 },
-      "size": { "x": 2.8, "y": 0.24 }
-    },
-    {
-      "position": { "x": 12.2, "y": -0.42 },
-      "size": { "x": 1.4, "y": 0.20 }
-    },
-    {
-      "position": { "x": 16.0, "y": -0.68 },
-      "size": { "x": 1.7, "y": 0.22 }
-    },
-    {
-      "position": { "x": 18.5, "y": -0.22 },
-      "size": { "x": 2.1, "y": 0.22 }
-    },
-    {
-      "position": { "x": 21.3, "y": 0.18 },
-      "size": { "x": 2.6, "y": 0.26 }
-    }
+    { "position": { "x": 0.0, "y": -3.0 }, "size": { "x": 12.0, "y": 0.4 }, "label": "spawn-ground" },
+
+    { "position": { "x": 7.5, "y": -2.2 }, "size": { "x": 2.0, "y": 0.24 }, "label": "first-step" },
+    { "position": { "x": 10.0, "y": -1.6 }, "size": { "x": 1.8, "y": 0.24 }, "label": "second-step" },
+    { "position": { "x": 12.5, "y": -1.0 }, "size": { "x": 1.5, "y": 0.24 }, "label": "third-step" },
+
+    { "position": { "x": 15.5, "y": -2.8 }, "size": { "x": 6.0, "y": 0.4 }, "label": "gap-landing" },
+    { "position": { "x": 17.0, "y": -1.8 }, "size": { "x": 1.2, "y": 0.22 }, "label": "bounce-up-1" },
+    { "position": { "x": 19.5, "y": -1.0 }, "size": { "x": 1.4, "y": 0.22 }, "label": "bounce-up-2" },
+    { "position": { "x": 21.5, "y": -0.2 }, "size": { "x": 1.8, "y": 0.24 }, "label": "high-perch" },
+
+    { "position": { "x": 24.5, "y": -2.8 }, "size": { "x": 4.0, "y": 0.4 }, "label": "valley-floor" },
+    { "position": { "x": 27.0, "y": -1.5 }, "size": { "x": 0.9, "y": 0.20 }, "label": "precision-1" },
+    { "position": { "x": 29.0, "y": -0.8 }, "size": { "x": 0.9, "y": 0.20 }, "label": "precision-2" },
+    { "position": { "x": 31.0, "y": -0.2 }, "size": { "x": 0.9, "y": 0.20 }, "label": "precision-3" },
+
+    { "position": { "x": 34.0, "y": -2.8 }, "size": { "x": 5.0, "y": 0.4 }, "label": "ability-arena-floor" },
+    { "position": { "x": 34.0, "y": -1.2 }, "size": { "x": 2.0, "y": 0.22 }, "label": "ability-plat-1" },
+    { "position": { "x": 37.0, "y": 0.0 }, "size": { "x": 1.6, "y": 0.22 }, "label": "ability-plat-2" },
+    { "position": { "x": 39.5, "y": 1.0 }, "size": { "x": 1.8, "y": 0.22 }, "label": "ability-plat-3" },
+
+    { "position": { "x": 42.5, "y": -2.8 }, "size": { "x": 3.0, "y": 0.4 }, "label": "final-approach-floor" },
+    { "position": { "x": 44.0, "y": -1.5 }, "size": { "x": 1.5, "y": 0.22 }, "label": "final-step-1" },
+    { "position": { "x": 46.5, "y": -0.5 }, "size": { "x": 2.0, "y": 0.24 }, "label": "final-step-2" },
+    { "position": { "x": 49.0, "y": 0.5 }, "size": { "x": 3.0, "y": 0.4 }, "label": "goal-platform" }
   ],
   "goals": [
     {
-      "position": { "x": 21.6, "y": 0.92 },
-      "size": { "x": 1.25, "y": 1.05 }
+      "position": { "x": 49.0, "y": 1.5 },
+      "size": { "x": 1.5, "y": 1.2 }
     }
   ]
 }

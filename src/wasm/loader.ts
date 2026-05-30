@@ -4,7 +4,7 @@ export interface Platform { position: Vec2; size: Vec2; }
 
 export interface PlatformList { get(index: number): Platform; size(): number; }
 
-export interface InputState { left: boolean; right: boolean; jump: boolean; }
+export interface InputState { left: boolean; right: boolean; jump: boolean; abilityKey: boolean; }
 
 export interface AnimationState {
   currentState: string;
@@ -34,11 +34,14 @@ export interface Game {
   getParticles(): ParticleList;
   getPlayerAnimationState(): AnimationState;
   setSoundCallback(callback: (soundName: string) => void): void;
-  loadLevel(level: any): void; // accepts a plain JS object parsed from JSON
+  loadLevel(level: any): void;
   setLevelCompleteCallback(callback: () => void): void;
-  // Two-character (Bolts / Volts) groundwork - will be present after next WASM rebuild
-  switchCharacter?(): void;
-  getCurrentCharacter?(): number; // 0 = Bolts, 1 = Volts
+  // Two-character (Bolts / Volts) system
+  switchCharacter(): void;
+  getCurrentCharacter(): number; // 0 = Bolts, 1 = Volts
+  useAbility(): void;
+  getAbilityState(): number;    // 0 = Ready, 1 = Active, 2 = Cooldown
+  getAbilityCooldownPercent(): number; // 0.0 to 1.0
   delete(): void;
 }
 

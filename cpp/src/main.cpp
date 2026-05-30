@@ -16,7 +16,8 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
     emscripten::value_object<InputState>("InputState")
         .field("left", &InputState::left)
         .field("right", &InputState::right)
-        .field("jump", &InputState::jump);
+        .field("jump", &InputState::jump)
+        .field("abilityKey", &InputState::abilityKey);
 
     emscripten::value_object<AnimationState>("AnimationState")
         .field("currentState", &AnimationState::currentState)
@@ -47,7 +48,10 @@ EMSCRIPTEN_BINDINGS(WASM_Venture) {
         .function("setSoundCallback", &Game::setSoundCallback)
         .function("loadLevel", &Game::loadLevel)
         .function("setLevelCompleteCallback", &Game::setLevelCompleteCallback)
-        // Bolts & Volts two-character groundwork
+        // Bolts & Volts two-character system
         .function("switchCharacter", &Game::switchCharacter)
-        .function("getCurrentCharacter", &Game::getCurrentCharacter);
+        .function("getCurrentCharacter", &Game::getCurrentCharacter)
+        .function("useAbility", &Game::useAbility)
+        .function("getAbilityState", &Game::getAbilityState)
+        .function("getAbilityCooldownPercent", &Game::getAbilityCooldownPercent);
 }

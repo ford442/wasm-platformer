@@ -10,88 +10,26 @@ Game::Game() {
     playerVelocity = {0.0f, 0.0f};
     playerSize = {0.5f, 0.8f};
     cameraPosition = {0.0f, 0.0f};
+    cameraTargetX = 0.0f;
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
-    wasGrounded = false; // Initialize previous grounded state
+    wasGrounded = false;
     canJump = true;
     coyoteTimer = 0.0f;
+    jumpBufferTimer = 0.0f;
     jumpHeld = false;
-    soundCallback = emscripten::val::null(); // Initialize callback to null
+    jumpBuffered = false;
+    soundCallback = emscripten::val::null();
     levelCompleteCallback = emscripten::val::null();
 
-    // Default ground/platforms (fallback)
+    // Default ground/platforms (fallback if no level JSON loaded)
     platforms.push_back({ {-12.25f, -2.0f}, {110.0f, 0.2f} });
-    
-    platforms.push_back({ {-6.25f, -1.2f}, {1.0f, 0.2f} });
-    platforms.push_back({ {-4.25f, -0.8f}, {1.0f, 0.2f} });
-    platforms.push_back({ {-2.25f, -0.8f}, {1.0f, 0.2f} });
-    platforms.push_back({ {-2.25f, -0.8f}, {1.0f, 0.2f} });
-    platforms.push_back({ {-3.0, -0.6f}, {1.0f, 0.2f} });
-    platforms.push_back({ {-5.25f, -0.4f}, {1.70f, 0.2f} });
-    
     platforms.push_back({ {0.0f, -0.8f}, {2.0f, 0.2f} });
     platforms.push_back({ {2.0f, -0.6f}, {1.0f, 0.2f} });
     platforms.push_back({ {4.0f, -0.4f}, {1.0f, 0.2f} });
     platforms.push_back({ {6.0f, -0.2f}, {1.5f, 0.2f} });
-
-    
-    // A series of ascending platforms
     platforms.push_back({ {8.0f, 0.2f}, {1.0f, 0.2f} });
     platforms.push_back({ {10.0f, 0.6f}, {1.0f, 0.2f} });
-    platforms.push_back({ {12.0f, 1.0f}, {1.0f, 0.2f} });
-
-    // Floating platforms for a gap jump
-    platforms.push_back({ {15.0f, 1.0f}, {1.5f, 0.2f} });
-    platforms.push_back({ {18.0f, 1.5f}, {1.0f, 0.2f} });
-
-    // A higher platform to test a vertical jump
-    platforms.push_back({ {20.0f, 2.5f}, {2.0f, 0.2f} });
-
-    // A long descending ramp
-    platforms.push_back({ {23.0f, 1.5f}, {2.0f, 0.2f} });
-    platforms.push_back({ {26.0f, 0.5f}, {2.0f, 0.2f} });
-    platforms.push_back({ {29.0f, -0.5f}, {3.0f, 0.2f} });
-
-    // Platforms with varied sizes and positions
-    platforms.push_back({ {33.0f, -0.2f}, {1.0f, 0.5f} });
-    platforms.push_back({ {35.0f, 0.8f}, {2.5f, 0.2f} });
-    platforms.push_back({ {38.0f, 1.5f}, {1.0f, 0.2f} });
-
-    // A large, high platform
-    platforms.push_back({ {42.0f, 2.0f}, {4.0f, 0.3f} });
-
-    // Maze-like section with vertical challenges (46-60)
-    platforms.push_back({ {46.0f, 1.2f}, {1.5f, 0.2f} });
-    platforms.push_back({ {48.5f, 0.4f}, {1.0f, 0.2f} });
-    platforms.push_back({ {50.5f, 1.0f}, {1.5f, 0.2f} });
-    platforms.push_back({ {52.5f, 2.0f}, {1.0f, 0.2f} });
-    platforms.push_back({ {54.0f, 2.8f}, {2.0f, 0.2f} });
-    platforms.push_back({ {56.5f, 2.0f}, {1.0f, 0.2f} });
-    platforms.push_back({ {58.0f, 1.2f}, {1.5f, 0.2f} });
-    platforms.push_back({ {60.0f, 0.5f}, {1.5f, 0.2f} });
-
-    // Precision jumping section with small platforms (62-75)
-    platforms.push_back({ {62.5f, 1.0f}, {0.8f, 0.2f} });
-    platforms.push_back({ {64.0f, 1.5f}, {0.8f, 0.2f} });
-    platforms.push_back({ {65.5f, 2.0f}, {0.8f, 0.2f} });
-    platforms.push_back({ {67.0f, 2.3f}, {0.8f, 0.2f} });
-    platforms.push_back({ {68.5f, 2.5f}, {1.0f, 0.2f} });
-    platforms.push_back({ {70.5f, 2.0f}, {0.8f, 0.2f} });
-    platforms.push_back({ {72.0f, 1.5f}, {0.8f, 0.2f} });
-    platforms.push_back({ {73.5f, 1.0f}, {1.0f, 0.2f} });
-    platforms.push_back({ {75.0f, 0.3f}, {1.5f, 0.2f} });
-
-    // Final challenge section - zigzag pattern (77-90)
-    platforms.push_back({ {77.5f, 0.8f}, {1.5f, 0.2f} });
-    platforms.push_back({ {79.5f, 1.6f}, {1.5f, 0.2f} });
-    platforms.push_back({ {81.5f, 2.4f}, {1.5f, 0.2f} });
-    platforms.push_back({ {83.5f, 3.0f}, {2.0f, 0.2f} });
-    platforms.push_back({ {86.0f, 2.2f}, {1.5f, 0.2f} });
-    platforms.push_back({ {88.0f, 1.4f}, {1.5f, 0.2f} });
-    platforms.push_back({ {90.0f, 0.6f}, {2.0f, 0.2f} });
-
-    // Goal platform - elevated finish line
-    platforms.push_back({ {93.0f, 1.5f}, {3.0f, 0.5f} });
 }
 
 void Game::setSoundCallback(emscripten::val callback) {
@@ -109,12 +47,16 @@ void Game::playSound(const std::string& soundName) {
 }
 
 void Game::loadLevel(const emscripten::val& level) {
-    // Expecting an object like: { spawn: {x,y}, platforms: [{position:{x,y}, size:{x,y}}, ...], bounds: {min:{x,y}, max:{x,y}}, goals: [...] }
     if (level.isNull() || level.isUndefined()) return;
     platforms.clear();
     goals.clear();
     goalTriggered.clear();
     hasLevelBounds = false;
+
+    // Reset ability state on level load
+    abilityState = AbilityState::Ready;
+    abilityCooldownTimer = 0.0f;
+    abilityActiveTimer = 0.0f;
 
     // spawn
     if (level.hasOwnProperty("spawn")) {
@@ -165,7 +107,7 @@ void Game::loadLevel(const emscripten::val& level) {
         }
     }
 
-    // Optionally handle camera bounds if provided
+    // Camera bounds
     if (level.hasOwnProperty("bounds")) {
         emscripten::val bounds = level["bounds"];
         if (bounds.hasOwnProperty("min") && bounds.hasOwnProperty("max")) {
@@ -179,33 +121,73 @@ void Game::loadLevel(const emscripten::val& level) {
             }
         }
     }
-    // Set camera to player on load
+    // Set camera to player on load (instant, no lerp)
     cameraPosition.x = playerPosition.x;
+    cameraTargetX = playerPosition.x;
+}
+
+
+void Game::applyMovementPhysics(float deltaTime, float targetVelX) {
+    const float maxSpeed = getMoveSpeed();
+    const float accel = isGrounded ? Physics::GROUND_ACCEL : Physics::AIR_ACCEL;
+    const float decel = isGrounded ? Physics::GROUND_DECEL : Physics::AIR_DECEL;
+
+    if (std::abs(targetVelX) > 0.01f) {
+        // Accelerate toward target
+        float diff = targetVelX - playerVelocity.x;
+        float change = accel * deltaTime;
+        if (std::abs(diff) < change) {
+            playerVelocity.x = targetVelX;
+        } else {
+            playerVelocity.x += (diff > 0 ? change : -change);
+        }
+        // Clamp to max speed
+        playerVelocity.x = std::max(-maxSpeed, std::min(maxSpeed, playerVelocity.x));
+    } else {
+        // Decelerate to stop
+        float change = decel * deltaTime;
+        if (std::abs(playerVelocity.x) < change) {
+            playerVelocity.x = 0.0f;
+        } else {
+            playerVelocity.x -= (playerVelocity.x > 0 ? change : -change);
+        }
+    }
 }
 
 
 void Game::handleInput(const InputState& input) {
     const float currentMoveSpeed = getMoveSpeed();
+    float targetVelX = 0.0f;
+
     if (input.left) {
-        playerVelocity.x = -currentMoveSpeed;
+        targetVelX = -currentMoveSpeed;
         playerAnimation.facingLeft = true;
     } else if (input.right) {
-        playerVelocity.x = currentMoveSpeed;
+        targetVelX = currentMoveSpeed;
         playerAnimation.facingLeft = false;
-    } else {
-        playerVelocity.x = 0;
     }
 
-    // Jump logic (with coyote time + variable height via cut on release)
+    // Apply acceleration-based movement
+    applyMovementPhysics(0.016f, targetVelX); // Use fixed step for input response consistency
+
+    // Jump input buffering: if jump is pressed, buffer it for a short window
+    if (input.jump && !jumpHeld) {
+        jumpBuffered = true;
+        jumpBufferTimer = Physics::JUMP_BUFFER_TIME;
+    }
+
+    // Jump logic (with coyote time + jump buffer + variable height via cut on release)
     const bool canCoyoteJump = (isGrounded || coyoteTimer > 0.0f);
-    if (input.jump && canCoyoteJump && canJump) {
+    if (jumpBuffered && canCoyoteJump && canJump) {
         playerVelocity.y = getJumpStrength();
         isGrounded = false;
         canJump = false;
-        coyoteTimer = 0.0f; // consume coyote grace
+        coyoteTimer = 0.0f;
+        jumpBuffered = false;
+        jumpBufferTimer = 0.0f;
         currentPlayerState = PlayerState::Jump;
         playSound("jump");
-        
+
         // Emit jump particles
         for (int i = 0; i < 10; ++i) {
             float angle = (rand() % 100 / 100.0f) * 3.14159f;
@@ -216,62 +198,188 @@ void Game::handleInput(const InputState& input) {
         }
     }
 
-    // Track jump button state for one-shot variable jump height (cut)
+    // Track jump button state for variable jump height (cut on release)
     if (input.jump) {
         jumpHeld = true;
     } else {
         if (jumpHeld && playerVelocity.y > 0.0f) {
             // Player released jump while still rising → shorter hop
-            playerVelocity.y *= JUMP_CUT_MULTIPLIER;
+            playerVelocity.y *= Physics::JUMP_CUT_MULTIPLIER;
         }
         jumpHeld = false;
         canJump = true;
+    }
+
+    // Ability activation (one-shot on press)
+    if (input.abilityKey && !abilityKeyWasPressed) {
+        useAbility();
+    }
+    abilityKeyWasPressed = input.abilityKey;
+}
+
+
+void Game::updateAbility(float deltaTime) {
+    switch (abilityState) {
+        case AbilityState::Active:
+            abilityActiveTimer -= deltaTime;
+            if (abilityActiveTimer <= 0.0f) {
+                abilityState = AbilityState::Cooldown;
+                float cooldown = (currentCharacter == CharacterType::Bolts)
+                    ? CharacterStats::BOLTS_GROUND_POUND_COOLDOWN
+                    : CharacterStats::VOLTS_HOVER_COOLDOWN;
+                abilityCooldownTimer = cooldown;
+            }
+            break;
+        case AbilityState::Cooldown:
+            abilityCooldownTimer -= deltaTime;
+            if (abilityCooldownTimer <= 0.0f) {
+                abilityState = AbilityState::Ready;
+                abilityCooldownTimer = 0.0f;
+            }
+            break;
+        case AbilityState::Ready:
+            break;
+    }
+}
+
+
+void Game::useAbility() {
+    if (abilityState != AbilityState::Ready) return;
+
+    if (currentCharacter == CharacterType::Bolts) {
+        // Ground Pound: slam downward quickly when airborne
+        if (!isGrounded) {
+            playerVelocity.y = CharacterStats::BOLTS_GROUND_POUND_SPEED;
+            playerVelocity.x *= 0.2f; // Kill most horizontal momentum
+            abilityState = AbilityState::Active;
+            abilityActiveTimer = 0.4f; // Short active duration (will end on landing too)
+            playSound("ground_pound");
+
+            // Slam particles
+            for (int i = 0; i < 8; ++i) {
+                float angle = (rand() % 100 / 100.0f) * 6.28f;
+                float spd = 1.5f + (rand() % 100 / 100.0f) * 1.5f;
+                Vec2 vel = { std::cos(angle) * spd * 0.3f, -std::abs(std::sin(angle) * spd) };
+                Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y * 0.4f };
+                particleSystem.emit(pos, vel, 0.4f, 0.12f, (rand() % 100 - 50) * 0.15f);
+            }
+        }
+    } else {
+        // Volts Hover: reduce gravity significantly for a duration while airborne
+        if (!isGrounded) {
+            abilityState = AbilityState::Active;
+            abilityActiveTimer = CharacterStats::VOLTS_HOVER_DURATION;
+            // Reduce downward velocity to start hover
+            if (playerVelocity.y < 0.0f) {
+                playerVelocity.y *= 0.3f;
+            }
+            playSound("hover");
+
+            // Tech particles
+            for (int i = 0; i < 6; ++i) {
+                float angle = (rand() % 100 / 100.0f) * 6.28f;
+                float spd = 0.5f + (rand() % 100 / 100.0f) * 0.8f;
+                Vec2 vel = { std::cos(angle) * spd, std::sin(angle) * spd * 0.4f - 0.5f };
+                Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y * 0.5f };
+                particleSystem.emit(pos, vel, 0.6f, 0.06f, (rand() % 100 - 50) * 0.2f);
+            }
+        }
     }
 }
 
 
 void Game::update(float deltaTime) {
-    // Safety clamp: variable rAF dt can be huge on lag/tab-switch and cause tunneling through thin platforms
+    // Safety clamp: prevent tunneling on lag/tab-switch
     if (deltaTime > 0.033f) deltaTime = 0.033f;
 
     particleSystem.update(deltaTime);
+    updateAbility(deltaTime);
 
-    wasGrounded = isGrounded; // Store the state from the previous frame
+    // Decay jump buffer
+    if (jumpBufferTimer > 0.0f) {
+        jumpBufferTimer -= deltaTime;
+        if (jumpBufferTimer <= 0.0f) {
+            jumpBuffered = false;
+        }
+    }
+
+    wasGrounded = isGrounded;
     isGrounded = false;
     float groundCheckDistance = 0.05f;
     Vec2 groundCheckPos = {playerPosition.x, playerPosition.y - playerSize.y / 2.0f - groundCheckDistance};
-    Vec2 groundCheckSize = {playerSize.x * 0.9f, 0.1f };
+    Vec2 groundCheckSize = {playerSize.x * 0.9f, 0.1f};
     for (const auto& platform : platforms) {
         if (checkCollision(groundCheckPos, groundCheckSize, platform.position, platform.size)) {
             isGrounded = true;
             break;
         }
     }
+
     if (isGrounded && !wasGrounded) {
         playSound("land");
-        // Emit land particles
+        // End ground pound active state on landing
+        if (abilityState == AbilityState::Active && currentCharacter == CharacterType::Bolts) {
+            abilityState = AbilityState::Cooldown;
+            abilityCooldownTimer = CharacterStats::BOLTS_GROUND_POUND_COOLDOWN;
+            // Impact particles on ground pound landing
+            for (int i = 0; i < 14; ++i) {
+                float angle = (rand() % 100 / 100.0f) * 3.14159f;
+                float speed = 2.0f + (rand() % 100 / 100.0f) * 3.0f;
+                Vec2 vel = { std::cos(angle) * speed, std::abs(std::sin(angle) * speed * 0.7f) };
+                Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
+                particleSystem.emit(pos, vel, 0.5f, 0.12f, (rand() % 100 - 50) * 0.12f);
+            }
+        }
+        // Normal land particles
         for (int i = 0; i < 10; ++i) {
-            float angle = (rand() % 100 / 100.0f) * 3.14159f; // 0 to PI
+            float angle = (rand() % 100 / 100.0f) * 3.14159f;
             float speed = 1.0f + (rand() % 100 / 100.0f) * 2.0f;
-            Vec2 vel = { std::cos(angle) * speed, std::abs(std::sin(angle) * speed * 0.5f) }; 
+            Vec2 vel = { std::cos(angle) * speed, std::abs(std::sin(angle) * speed * 0.5f) };
             Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
             particleSystem.emit(pos, vel, 0.3f, 0.08f, (rand() % 100 - 50) * 0.1f);
         }
-        coyoteTimer = COYOTE_TIME; // refresh on landing
+        coyoteTimer = Physics::COYOTE_TIME;
     } else if (!isGrounded) {
-        // Decay coyote timer while in the air (gives a short grace window after leaving a platform)
         if (coyoteTimer > 0.0f) {
             coyoteTimer -= deltaTime;
         }
+        // Cancel hover ability on landing (Volts)
     } else {
-        // Standing on ground
-        coyoteTimer = COYOTE_TIME;
+        coyoteTimer = Physics::COYOTE_TIME;
+        // End hover if grounded
+        if (abilityState == AbilityState::Active && currentCharacter == CharacterType::Volts) {
+            abilityState = AbilityState::Cooldown;
+            abilityCooldownTimer = CharacterStats::VOLTS_HOVER_COOLDOWN;
+        }
     }
+
+    // Gravity with apex hang time and ability modifications
     if (!isGrounded) {
-        playerVelocity.y += gravity * deltaTime;
+        float gravityMult = 1.0f;
+
+        // Apex hang time: reduce gravity when near the peak of a jump
+        if (std::abs(playerVelocity.y) < Physics::APEX_VELOCITY_THRESHOLD) {
+            gravityMult = Physics::APEX_GRAVITY_MULT;
+        }
+
+        // Volts hover: dramatically reduce gravity while ability is active
+        if (currentCharacter == CharacterType::Volts && abilityState == AbilityState::Active) {
+            gravityMult = CharacterStats::VOLTS_HOVER_GRAVITY_MULT;
+            // Emit subtle hover particles
+            if ((rand() % 100) < 15) {
+                float angle = (rand() % 100 / 100.0f) * 6.28f;
+                Vec2 vel = { std::cos(angle) * 0.3f, -0.5f };
+                Vec2 pos = { playerPosition.x + (rand() % 100 - 50) * 0.003f, playerPosition.y - playerSize.y * 0.5f };
+                particleSystem.emit(pos, vel, 0.3f, 0.04f, (rand() % 100 - 50) * 0.1f);
+            }
+        }
+
+        playerVelocity.y += Physics::GRAVITY * gravityMult * deltaTime;
     } else {
         playerVelocity.y = std::max(0.0f, playerVelocity.y);
     }
+
+    // Vertical movement + collision
     playerPosition.y += playerVelocity.y * deltaTime;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -279,15 +387,17 @@ void Game::update(float deltaTime) {
             float platformHalfY = platform.size.y / 2.0f;
             float deltaY = playerPosition.y - platform.position.y;
             float penetrationY = (playerHalfY + platformHalfY) - std::abs(deltaY);
-            if (deltaY > 0) { // Landing on top of a platform
+            if (deltaY > 0) {
                 playerPosition.y += penetrationY;
                 if (playerVelocity.y < 0) playerVelocity.y = 0;
-            } else { // Hitting a platform from below
+            } else {
                 playerPosition.y -= penetrationY;
                 if (playerVelocity.y > 0) playerVelocity.y = 0;
             }
         }
     }
+
+    // Horizontal movement + collision
     playerPosition.x += playerVelocity.x * deltaTime;
     for (const auto& platform : platforms) {
         if (checkCollision(playerPosition, playerSize, platform.position, platform.size)) {
@@ -300,14 +410,15 @@ void Game::update(float deltaTime) {
             playerVelocity.x = 0;
         }
     }
+
     // State Machine Update
     if (!isGrounded) {
         if (playerVelocity.y > 0) currentPlayerState = PlayerState::Jump;
-        else currentPlayerState = PlayerState::Fall; // We can map Fall to Jump animation or a new one
+        else currentPlayerState = PlayerState::Fall;
     } else if (std::abs(playerVelocity.x) > 0.01f) {
         currentPlayerState = PlayerState::Run;
         // Emit run particles occasionally
-        if ((rand() % 100) < 10) { 
+        if ((rand() % 100) < 10) {
              Vec2 vel = { -playerVelocity.x * 0.5f, 0.5f + (rand() % 100 / 100.0f) };
              Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y / 2.0f };
              particleSystem.emit(pos, vel, 0.2f, 0.05f, (rand() % 100 - 50) * 0.1f);
@@ -322,7 +433,7 @@ void Game::update(float deltaTime) {
         case PlayerState::Idle: newStateString = "idle"; break;
         case PlayerState::Run: newStateString = "run"; break;
         case PlayerState::Jump: newStateString = "jump"; break;
-        case PlayerState::Fall: newStateString = "jump"; break; // Re-use jump for now
+        case PlayerState::Fall: newStateString = "jump"; break; // Re-use jump animation for now
     }
 
     if (newStateString != playerAnimation.currentState) {
@@ -336,14 +447,22 @@ void Game::update(float deltaTime) {
         animationTimer -= frameDuration;
         playerAnimation.currentFrame = (playerAnimation.currentFrame + 1);
     }
-    cameraPosition.x = playerPosition.x;
-    // clamp camera to level bounds if provided
+
+    // Smooth camera follow with look-ahead
+    float lookahead = 0.0f;
+    if (std::abs(playerVelocity.x) > 0.5f) {
+        lookahead = (playerVelocity.x > 0 ? 1.0f : -1.0f) * Physics::CAMERA_LOOKAHEAD;
+    }
+    cameraTargetX = playerPosition.x + lookahead;
+    cameraPosition.x += (cameraTargetX - cameraPosition.x) * Physics::CAMERA_LERP_SPEED * deltaTime;
+
+    // Clamp camera to level bounds
     if (hasLevelBounds) {
         if (cameraPosition.x < levelMin.x) cameraPosition.x = levelMin.x;
         if (cameraPosition.x > levelMax.x) cameraPosition.x = levelMax.x;
     }
 
-    // check goals for completion
+    // Check goals for completion
     for (size_t i = 0; i < goals.size(); ++i) {
         if (goalTriggered[i]) continue;
         if (checkCollision(playerPosition, playerSize, goals[i].position, goals[i].size)) {
@@ -377,16 +496,18 @@ AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
 
 const std::vector<Particle>& Game::getParticles() const { return particleSystem.getParticles(); }
 
-// === Bolts & Volts character groundwork (minimal, additive) ===
+// === Bolts & Volts character system ===
 
 float Game::getMoveSpeed() const {
-    // Bolts: slightly more deliberate/heavy; Volts: a bit quicker
-    return (currentCharacter == CharacterType::Bolts) ? 1.85f : 2.15f;
+    return (currentCharacter == CharacterType::Bolts)
+        ? CharacterStats::BOLTS_MOVE_SPEED
+        : CharacterStats::VOLTS_MOVE_SPEED;
 }
 
 float Game::getJumpStrength() const {
-    // Bolts: powerful but lower arc (tankier); Volts: springier for vertical tech movement
-    return (currentCharacter == CharacterType::Bolts) ? 5.6f : 6.85f;
+    return (currentCharacter == CharacterType::Bolts)
+        ? CharacterStats::BOLTS_JUMP_STRENGTH
+        : CharacterStats::VOLTS_JUMP_STRENGTH;
 }
 
 void Game::switchCharacter() {
@@ -394,7 +515,12 @@ void Game::switchCharacter() {
         ? CharacterType::Volts
         : CharacterType::Bolts;
 
-    // Light feedback: small particle puff + zero horizontal velocity on switch (feels like a "mode shift")
+    // Reset ability state on switch
+    abilityState = AbilityState::Ready;
+    abilityCooldownTimer = 0.0f;
+    abilityActiveTimer = 0.0f;
+
+    // Feedback: particle puff + dampen velocity
     playerVelocity.x *= 0.3f;
     for (int i = 0; i < 6; ++i) {
         float angle = (rand() % 100 / 100.0f) * 6.28f;
@@ -403,9 +529,24 @@ void Game::switchCharacter() {
         Vec2 pos = { playerPosition.x, playerPosition.y - playerSize.y * 0.3f };
         particleSystem.emit(pos, vel, 0.35f, 0.07f, (rand() % 100 - 50) * 0.08f);
     }
-    // Future: different sound per character, different particles, ability cooldowns, etc.
+    playSound("switch");
 }
 
 int Game::getCurrentCharacter() const {
     return static_cast<int>(currentCharacter);
+}
+
+int Game::getAbilityState() const {
+    return static_cast<int>(abilityState);
+}
+
+float Game::getAbilityCooldownPercent() const {
+    if (abilityState == AbilityState::Cooldown) {
+        float maxCooldown = (currentCharacter == CharacterType::Bolts)
+            ? CharacterStats::BOLTS_GROUND_POUND_COOLDOWN
+            : CharacterStats::VOLTS_HOVER_COOLDOWN;
+        return (maxCooldown > 0.0f) ? (abilityCooldownTimer / maxCooldown) : 0.0f;
+    }
+    if (abilityState == AbilityState::Active) return 1.0f;
+    return 0.0f;
 }
