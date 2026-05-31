@@ -6,6 +6,39 @@ export type TextureObject = {
   height: number;
 };
 
+export type TextureLoadOptions = {
+  repeat?: boolean;
+  pixelated?: boolean;
+};
+
+export type BackgroundLayer = {
+  texture: TextureObject;
+  scrollFactorX: number;
+  scrollFactorY: number;
+  scale: number;
+  offsetY: number;
+};
+
+export type DecorLayerName = 'distant' | 'mid' | 'foreground';
+
+export type DecorItem = {
+  position: Vec2;
+  size: Vec2;
+  texture: TextureObject;
+  layer: DecorLayerName;
+  parallaxX: number;
+  parallaxY: number;
+  offsetY: number;
+  frameCoord: Vec2;
+  frameSize: Vec2;
+};
+
+export type DecorLayers = {
+  distant: DecorItem[];
+  mid: DecorItem[];
+  foreground: DecorItem[];
+};
+
 const animationMap = {
   idle: { row: 0, frames: 2, frameSize: { x: 64, y: 64 } },
   run: { row: 1, frames: 4, frameSize: { x: 64, y: 64 } },
@@ -33,6 +66,9 @@ export class Renderer {
   private backgroundTextureSizeUniformLocation: WebGLUniformLocation | null;
   private backgroundResolutionUniformLocation: WebGLUniformLocation | null;
   private backgroundTextureUniformLocation: WebGLUniformLocation | null;
+  private backgroundScrollFactorUniformLocation: WebGLUniformLocation | null;
+  private backgroundScaleUniformLocation: WebGLUniformLocation | null;
+  private backgroundOffsetYUniformLocation: WebGLUniformLocation | null;
   private unitSquarePositionBuffer: WebGLBuffer | null = null;
   private unitSquareTexCoordBuffer: WebGLBuffer | null = null;
   private fullScreenQuadBuffer: WebGLBuffer | null = null;
@@ -70,6 +106,9 @@ export class Renderer {
     this.backgroundTextureSizeUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_texture_size');
     this.backgroundResolutionUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_resolution');
     this.backgroundTextureUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_texture');
+    this.backgroundScrollFactorUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_scroll_factor');
+    this.backgroundScaleUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_scale');
+    this.backgroundOffsetYUniformLocation = this.gl.getUniformLocation(this.backgroundProgram, 'u_offset_y');
     this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.setupGeometry();
     // create simple solid debug textures
@@ -102,7 +141,8 @@ export class Renderer {
   }
 
 
-  public async loadTexture(url: string): Promise<TextureObject> {
+  public async loadTexture(url: string, options: TextureLoadOptions = {}): Promise<TextureObject> {
+    const { repeat = false, pixelated = true } = options;
     const texture = this.gl.createTexture();
     if (!texture) throw new Error("Failed to create texture");
     const image = new Image();
@@ -110,10 +150,16 @@ export class Renderer {
     await image.decode(); // Wait for the image to load
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, repeat ? this.gl.REPEAT : this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, repeat ? this.gl.REPEAT : this.gl.CLAMP_TO_EDGE);
+    if (pixelated) {
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+    } else {
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+      this.gl.generateMipmap(this.gl.TEXTURE_2D);
+    }
 
     // If the image looks like the player spritesheet (matches frame sizes in animationMap), compute per-frame bottommost alpha to anchor feet
     try {
@@ -190,14 +236,24 @@ export class Renderer {
   }
 
 
-  private drawSprite(position: Vec2, size: Vec2, textureObj: TextureObject, sheetSize: Vec2, frameSize: Vec2, frameCoord: Vec2, facingLeft: boolean, visualYOffset: number = 0) {
+  private drawSprite(
+    position: Vec2,
+    size: Vec2,
+    textureObj: TextureObject,
+    sheetSize: Vec2,
+    frameSize: Vec2,
+    frameCoord: Vec2,
+    facingLeft: boolean,
+    visualYOffset: number = 0,
+    applyAutoAnchor: boolean = true
+  ) {
     this.gl.bindTexture(this.gl.TEXTURE_2D, textureObj.texture);
     this.gl.uniform1i(this.spriteTextureUniformLocation, 0);
 
     // compute vertical anchor offset (in world units) if we have precomputed anchors for this texture
     let modelPosY = position.y;
-    const anchorsForTex = this.anchors.get(textureObj.texture);
-    if (anchorsForTex) {
+    const anchorsForTex = applyAutoAnchor ? this.anchors.get(textureObj.texture) : undefined;
+    if (applyAutoAnchor && anchorsForTex) {
       // determine current frame indices
       const frameIndex = Math.round(frameCoord.x / (frameSize.x || 1));
       const rowIndex = Math.round(frameCoord.y / (frameSize.y || 1));
@@ -206,7 +262,7 @@ export class Renderer {
         const offsetWorld = (offsetPx / frameSize.y) * size.y;
         modelPosY = position.y - offsetWorld; // shift sprite down so foot aligns with collision bottom
       }
-    } else {
+    } else if (applyAutoAnchor) {
       // Fallback: if sprite frames are 64x64 (our player sheet), apply a small heuristic offset so feet sit lower
       if (frameSize && frameSize.y === 64 && frameSize.x === 64) {
         const fallbackFraction = 0.25; // increased: fraction of sprite height to lower the sprite
@@ -234,17 +290,41 @@ export class Renderer {
   }
 
 
-  private drawBackground(cameraPosition: Vec2, backgroundTexture: TextureObject) {
+  private drawBackgroundLayer(cameraPosition: Vec2, layer: BackgroundLayer) {
     this.gl.useProgram(this.backgroundProgram);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, backgroundTexture.texture);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, layer.texture.texture);
     this.gl.uniform1i(this.backgroundTextureUniformLocation, 0);
     this.gl.uniform2f(this.backgroundCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
-    this.gl.uniform2f(this.backgroundTextureSizeUniformLocation, backgroundTexture.width, backgroundTexture.height);
+    this.gl.uniform2f(this.backgroundTextureSizeUniformLocation, layer.texture.width, layer.texture.height);
     this.gl.uniform2f(this.backgroundResolutionUniformLocation, this.gl.canvas.width, this.gl.canvas.height);
+    this.gl.uniform2f(this.backgroundScrollFactorUniformLocation, layer.scrollFactorX, layer.scrollFactorY);
+    this.gl.uniform1f(this.backgroundScaleUniformLocation, layer.scale);
+    this.gl.uniform1f(this.backgroundOffsetYUniformLocation, layer.offsetY);
     this.gl.enableVertexAttribArray(this.backgroundPositionAttributeLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fullScreenQuadBuffer);
     this.gl.vertexAttribPointer(this.backgroundPositionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+
+  private drawDecorItems(cameraPosition: Vec2, decorItems: DecorItem[]) {
+    for (const item of decorItems) {
+      this.gl.uniform2f(
+        this.spriteCameraPositionUniformLocation,
+        cameraPosition.x * item.parallaxX,
+        cameraPosition.y * item.parallaxY
+      );
+      this.drawSprite(
+        item.position,
+        item.size,
+        item.texture,
+        { x: item.texture.width, y: item.texture.height },
+        item.frameSize,
+        item.frameCoord,
+        false,
+        item.offsetY,
+        false
+      );
+    }
   }
 
 
@@ -261,10 +341,28 @@ export class Renderer {
     return { texture: tex, width: 1, height: 1 };
   }
 
-  public drawScene(cameraPosition: Vec2, playerPosition: Vec2, playerSize: Vec2, platforms: Platform[], particles: Particle[], playerTexture: TextureObject | null, platformTexture: TextureObject | null, backgroundTexture: TextureObject | null, playerAnim: AnimationState | null, goals: Platform[] = [], character: number = 0) {
+  public drawScene(
+    cameraPosition: Vec2,
+    playerPosition: Vec2,
+    playerSize: Vec2,
+    platforms: Platform[],
+    particles: Particle[],
+    playerTexture: TextureObject | null,
+    platformTexture: TextureObject | null,
+    backgroundLayers: BackgroundLayer[] = [],
+    decorLayers: DecorLayers = { distant: [], mid: [], foreground: [] },
+    platformVisualFlags: boolean[] = [],
+    playerAnim: AnimationState | null,
+    goals: Platform[] = [],
+    character: number = 0
+  ) {
     this.gl.clearColor(0.1, 0.1, 0.1, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    if (backgroundTexture) { this.drawBackground(cameraPosition, backgroundTexture); }
+    if (backgroundLayers.length > 0) {
+      for (const layer of backgroundLayers) {
+        this.drawBackgroundLayer(cameraPosition, layer);
+      }
+    }
     this.gl.useProgram(this.spriteProgram);
     const aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
     const worldWidth = 10.0;
@@ -274,17 +372,23 @@ export class Renderer {
     this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+    if (decorLayers.distant.length > 0) {
+      this.drawDecorItems(cameraPosition, decorLayers.distant);
+      this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
+    }
+
     if (platformTexture) {
-      for (const platform of platforms) {
+      for (let i = 0; i < platforms.length; i++) {
+        if (platformVisualFlags[i] === false) continue;
+        const platform = platforms[i];
         this.drawSprite(platform.position, platform.size, platformTexture, { x: platformTexture.width, y: platformTexture.height }, { x: platformTexture.width, y: platformTexture.height }, { x: 0, y: 0 }, false, 0);
       }
     }
-    // draw debug collision boxes (platforms = green, player = red)
-    if (this.debugGreenTexture) {
-      for (const platform of platforms) {
-        // platform collision box: use platform.position and platform.size
-        this.drawSprite({ x: platform.position.x, y: platform.position.y }, { x: platform.size.x, y: platform.size.y }, this.debugGreenTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false);
-      }
+
+    if (decorLayers.mid.length > 0) {
+      this.drawDecorItems(cameraPosition, decorLayers.mid);
+      this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
     }
 
     // Draw goals as bright cyan boxes so the player has a clear, visible target (Phase 1 playability fix).
@@ -332,6 +436,26 @@ export class Renderer {
     if (this.whiteTexture) {
       for (const p of particles) {
         this.drawSprite(p.position, { x: p.size, y: p.size }, this.whiteTexture, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 0 }, false, 0);
+      }
+    }
+
+    if (decorLayers.foreground.length > 0) {
+      this.drawDecorItems(cameraPosition, decorLayers.foreground);
+      this.gl.uniform2f(this.spriteCameraPositionUniformLocation, cameraPosition.x, cameraPosition.y);
+    }
+
+    // draw debug collision boxes (platforms = green, player = red)
+    if (this.debugGreenTexture) {
+      for (const platform of platforms) {
+        this.drawSprite(
+          { x: platform.position.x, y: platform.position.y },
+          { x: platform.size.x, y: platform.size.y },
+          this.debugGreenTexture,
+          { x: 1, y: 1 },
+          { x: 1, y: 1 },
+          { x: 0, y: 0 },
+          false
+        );
       }
     }
   }

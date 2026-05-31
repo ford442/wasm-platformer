@@ -1,0 +1,18 @@
+{
+  "levels": [
+    {
+      "id": "test-1",
+      "file": "test-1.json",
+      "name": "Voltage Valley - First Steps",
+      "description": "Learn movement, abilities, and goal flow with Bolts and Volts.",
+      "author": "Core Team"
+    },
+    {
+      "id": "demo-decor",
+      "file": "demo-decor.json",
+      "name": "Decor Depth Demo",
+      "description": "Showcases layered decor, parallax backgrounds, and vertical camera movement.",
+      "author": "Core Team"
+    }
+  ]
+}

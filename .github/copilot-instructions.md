@@ -1,6 +1,16 @@
-# Copilot Instructions for WASM-Venture
+# Copilot Instructions for Bolts & Volts
 
-This document provides essential context for AI assistants working on the WASM-Venture codebase.
+This document provides essential context for AI assistants working on the Bolts & Volts codebase.
+
+## Documentation Map
+
+- Docs hub: [`docs/README.md`](../docs/README.md)
+- AI guide index: [`docs/ai/README.md`](../docs/ai/README.md)
+- AGENTS guide: [`AGENTS.md`](../AGENTS.md)
+- Claude guide: [`CLAUDE.md`](../CLAUDE.md)
+- Grok guide: [`grok.md`](../grok.md)
+- Roadmap plan: [`docs/plans/PLAN.md`](../docs/plans/PLAN.md)
+- Changelog: [`CHANGELOG.md`](../CHANGELOG.md)
 
 ## Build, Test & Lint Commands
 
@@ -8,13 +18,15 @@ This document provides essential context for AI assistants working on the WASM-V
 - `npm run dev` — Compile C++ to WebAssembly and start Vite dev server
 - `npm run build:wasm` — Compile C++ to WebAssembly only (outputs to `src/wasm/main.js`)
 - `npm run build` — Full production build (WASM + TypeScript compilation + Vite bundling)
-- `npm run lint` — Run ESLint on all `.ts` and `.tsx` files; fails on warnings
+- `npm run lint` — Run ESLint with the root flat config (`eslint.config.js`); fails on warnings
+- `npm run test` — Run Vitest unit tests
+- `npm run test:e2e` — Run the Playwright smoke test (stubs WASM; no `emcc` required)
 
 **Prerequisites:** Emscripten SDK must be installed and `emsdk` environment variables configured.
 
 ## High-Level Architecture
 
-WASM-Venture is a 2D platformer combining C++ game logic with a React/WebGL2 frontend.
+Bolts & Volts is a 2D platformer combining C++ game logic with a React/WebGL2 frontend.
 
 ### Core Components
 

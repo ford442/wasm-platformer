@@ -2,9 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation Map
+
+- Docs hub: [`docs/README.md`](./docs/README.md)
+- AI index: [`docs/ai/README.md`](./docs/ai/README.md)
+- AGENTS guide: [`AGENTS.md`](./AGENTS.md)
+- Grok guide: [`grok.md`](./grok.md)
+- Copilot guide: [`.github/copilot-instructions.md`](./.github/copilot-instructions.md)
+- Roadmap plan: [`docs/plans/PLAN.md`](./docs/plans/PLAN.md)
+- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
+
 ## Project Overview
 
-WASM-Venture (package name: `wasm-platformer`) is a browser-based 2D platformer. The character Wazzy (a dog robot) is controlled via arrow keys and Space. Game logic runs in C++ compiled to WebAssembly via Emscripten; TypeScript/React bridges the WASM module to a WebGL2 canvas renderer.
+Bolts & Volts (previously referred to as WASM-Venture) is a browser-based 2D platformer. The character Wazzy (a dog robot) is controlled via arrow keys and Space. Game logic runs in C++ compiled to WebAssembly via Emscripten; TypeScript/React bridges the WASM module to a WebGL2 canvas renderer.
 
 ## Build & Dev Commands
 
@@ -24,11 +34,15 @@ npm run build
 # Lint
 npm run lint
 
+# Tests
+npm run test
+npm run test:e2e
+
 # Preview production build
 npm run preview
 ```
 
-**Prerequisite:** Emscripten (`emcc`) must be on `PATH` for any command that compiles WASM. The `build:wasm` script outputs `src/wasm/main.js` + `main.wasm`.
+**Prerequisite:** Emscripten (`emcc`) must be on `PATH` for any command that compiles WASM. The `build:wasm` script outputs `src/wasm/main.js` + `main.wasm`. The Playwright smoke test does not require `emcc` because it stubs the WASM module.
 
 ## Architecture
 
@@ -68,6 +82,8 @@ C++ (Game logic) → Emscripten → src/wasm/main.js + main.wasm
 }
 ```
 Levels are fetched at runtime from `/levels/<name>.json` and passed as a plain JS object to `Game::loadLevel` via embind.
+An optional `"camera"` block supports per-level camera tuning: `followY`, `verticalDeadzone`, and `lookAheadY`.
+Without a `"camera"` block, behavior remains backward-compatible and the camera only follows X.
 
 ### Coordinate system
 World units are used throughout (not pixels). The viewport shows 10 world-units wide, aspect-ratio-corrected. Positive Y is up. Player collision and camera positions come from WASM; the renderer applies a per-frame foot-anchor offset computed from spritesheet alpha to align sprites with collision boxes.

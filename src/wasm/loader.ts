@@ -31,8 +31,11 @@ export interface Game {
   getPlayerSize(): Vec2;
   getCameraPosition(): Vec2;
   getPlatforms(): PlatformList;
+  getGoals(): PlatformList;
   getParticles(): ParticleList;
   getPlayerAnimationState(): AnimationState;
+  getLevelName(): string;
+  getLevelDescription(): string;
   setSoundCallback(callback: (soundName: string) => void): void;
   loadLevel(level: any): void;
   setLevelCompleteCallback(callback: () => void): void;

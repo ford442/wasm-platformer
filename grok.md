@@ -2,9 +2,25 @@
 
 > Read this first. Complements the detailed [CLAUDE.md](./CLAUDE.md) (architecture deep-dive) and [README.md](./README.md).
 
+## Documentation Map
+
+- Docs hub: [`docs/README.md`](./docs/README.md)
+- AI index: [`docs/ai/README.md`](./docs/ai/README.md)
+- AGENTS guide: [`AGENTS.md`](./AGENTS.md)
+- Claude guide: [`CLAUDE.md`](./CLAUDE.md)
+- Copilot guide: [`.github/copilot-instructions.md`](./.github/copilot-instructions.md)
+- Roadmap plan: [`docs/plans/PLAN.md`](./docs/plans/PLAN.md)
+- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
+
 ## Project Overview
 
-**Bolts and Volts** (internal: WASM-Venture / package `wasm-platformer`) is a browser-based 2D platformer. The player controls **Wazzy**, a small agile dog robot that crash-landed on an alien planet. The goal is to traverse hand-crafted levels full of platforms, collect ship parts (modeled as "goals"), and escape.
+**Bolts & Volts** (legacy codename: WASM-Venture) is a browser-based 2D platformer. The player controls **Wazzy**, a small agile dog robot that crash-landed on an alien planet. The goal is to traverse hand-crafted levels full of platforms, collect ship parts (modeled as "goals"), and escape.
+
+## Branding
+
+- Public project name: **Bolts & Volts**
+- npm package name: **`bolts-and-volts`**
+- Legacy codename references (`WASM-Venture`, `wasm-platformer`) are historical only.
 
 - **Core Loop**: Precise platforming, momentum, jumping, landing/jump feedback.
 - **Tech Split**: All gameplay physics, collision, animation state, particles, and level loading live in **C++** compiled to WebAssembly via Emscripten + embind. The TypeScript/React layer owns rendering (WebGL2), input, audio, and orchestration.
@@ -79,6 +95,11 @@ npm run build
 
 npm run preview
 npm run lint
+# optional auto-fix pass
+npm run lint:fix
+
+npm run test       # Vitest unit tests
+npm run test:e2e   # Playwright smoke test (stubs WASM; no emcc required)
 ```
 
 After `build:wasm` you should see `src/wasm/main.js` and `main.wasm`. Vite serves the `src/` tree during dev.
@@ -111,7 +132,7 @@ python deploy.py   # uploads dist/ → go.1ink.us/platformer
 
 - **Use todo_write for anything 3+ steps**: Especially binding changes, new mechanics, or cross-language refactors.
 
-- **No automated tests yet**: All verification is manual browser testing (Chrome/Edge recommended for WebGL2). When adding verification later, follow patterns from sibling projects (Playwright + local server).
+- **Tests exist now**: `npm run test` covers shared TS helpers, and `npm run test:e2e` uses a Playwright smoke test with a stubbed WASM module. The full WASM build still requires `emcc`, but the smoke test does not.
 
 ## Common Tasks
 

@@ -37,8 +37,35 @@ Silly, but with real danger and action. Expect sarcastic robot dialogue, over-th
 - WebGL2 rendering
 - Platforming physics and collision
 - Level loading from JSON
+- Manifest-driven multi-map selection with in-game switching
 - Particle effects
 - Sound event hooks
+
+## Level Background Layers
+
+Levels can now define an optional `backgroundLayers` array for multi-depth parallax backgrounds:
+
+```json
+"backgroundLayers": [
+  { "image": "./bg-sky.png", "scrollFactorX": 0.05, "scrollFactorY": 0.0, "scale": 1.0, "offsetY": 0.0 },
+  { "image": "./bg-mountains.png", "scrollFactorX": 0.25, "scrollFactorY": 0.1, "scale": 1.2 }
+]
+```
+
+Layers render in listed order (farthest first). If `backgroundLayers` is missing, the renderer keeps legacy behavior by using the single `./background.png` layer with the existing parallax look.
+
+## Level Decor (Non-Collision Visuals)
+
+Levels can optionally include a `decor` array for visual-only props that do not affect collision or goals:
+
+```json
+"decor": [
+  { "image": "./wazzy.png", "position": { "x": 6.0, "y": -1.0 }, "size": { "x": 1.2, "y": 1.2 }, "layer": "distant", "parallaxFactor": 0.3 },
+  { "texture": "./platform.png", "position": { "x": 18.0, "y": 0.5 }, "uv": [0, 0, 64, 64], "layer": "foreground", "parallaxX": 1.05, "parallaxY": 1.0, "offsetY": 0.2 }
+]
+```
+
+Supported layer values are `distant`, `mid`, and `foreground` (default: `mid`). You can also set `visual: false` on individual `platforms` entries to keep collision while hiding the textured platform sprite.
 
 ## Tech Stack
 
@@ -54,26 +81,49 @@ git clone https://github.com/ford442/bolts_and_volts.git
 cd bolts_and_volts
 npm install
 npm run dev
-Current Focus
+```
+
+## Testing Instructions
+
+```bash
+npm run test       # Vitest unit tests
+npm run test:e2e   # Playwright smoke test with a stubbed WASM module
+npm run lint
+```
+
+The smoke test can run without an Emscripten build because it stubs the WASM module at the network layer. For a full game build, `npm run build:wasm` still requires `emcc` on `PATH`.
+
+## Current Focus
+
 Making the base platformer level feel good and stable so we can start properly testing and building on top of it. Dual-character mechanics and mission structure will come after the foundation is solid.
-Story Direction (Early)
-Bolts and Volts are deployed on distant space delivery missions. Their job is to get the payload where it needs to go — while dealing with interference from robotic space cats and other hazards.
+
+## Story Direction (Early)
+
+Bolts and Volts are deployed on distant space delivery missions. Their job is to get the payload where it needs to go while dealing with interference from robotic space cats and other hazards.
+
 The tone sits somewhere between:
 
-"BARK BARK. Payload delivered. Please sign for dents."
-Actual danger and action when things go wrong.
+> "BARK BARK. Payload delivered. Please sign for dents."
+>
+> Actual danger and action when things go wrong.
 
 More OLTS units with specialized roles may appear later.
-Project Structure
-textbolts_and_volts/
+
+## Project Structure
+
+```text
+bolts_and_volts/
 ├── cpp/src/           # C++ game systems
 ├── src/gl/            # WebGL2 rendering
 ├── src/components/    # React game UI
-├── levels/            # JSON level data
-└── public/
-Next Steps (Planned)
+├── public/levels/     # JSON level data
+└── public/            # Static assets
+```
 
-Improve core platforming feel and level design
-Flesh out basic dual-dog switching / ability differences
-Add simple mission structure and hazards
-Lean into the humorous tone with light dialogue and personality
+## Next Steps (Planned)
+
+- Improve core platforming feel and level design
+- Flesh out basic dual-dog switching / ability differences
+- Add simple mission structure and hazards
+- Expand the level manifest into mission-select and campaign chaining
+- Lean into the humorous tone with light dialogue and personality

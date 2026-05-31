@@ -1,10 +1,20 @@
-# WASM-Venture — Agent Guide
+# Bolts & Volts — Agent Guide
 
 > This file is written for AI coding agents. The reader is assumed to know nothing about the project.
 
+## Documentation Map
+
+- Docs hub: [`docs/README.md`](./docs/README.md)
+- AI index: [`docs/ai/README.md`](./docs/ai/README.md)
+- Claude guide: [`CLAUDE.md`](./CLAUDE.md)
+- Grok guide: [`grok.md`](./grok.md)
+- Copilot guide: [`.github/copilot-instructions.md`](./.github/copilot-instructions.md)
+- Roadmap plan: [`docs/plans/PLAN.md`](./docs/plans/PLAN.md)
+- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
+
 ## Project Overview
 
-**WASM-Venture** is a 2D browser platformer. The player controls Wazzy, a small dog robot, navigating levels to collect ship parts and return home.
+**Bolts & Volts** is a 2D browser platformer. The player controls Wazzy, a small dog robot, navigating levels to collect ship parts and return home.
 
 - **Core logic:** C++ (physics, collision, animation state machine, particle system)
 - **Compilation target:** WebAssembly via Emscripten (`emcc`)
@@ -92,7 +102,13 @@ npm run build:wasm    # emcc compiles cpp/src/*.cpp → src/wasm/main.js
 
 **Lint:**
 ```bash
-npm run lint          # eslint . --ext ts,tsx
+npm run lint          # eslint . --max-warnings 0 (flat config in eslint.config.js)
+```
+
+**Tests:**
+```bash
+npm run test          # Vitest unit tests
+npm run test:e2e      # Playwright smoke test (stubs WASM; no emcc required)
 ```
 
 **Preview production build:**
@@ -147,6 +163,8 @@ Levels are JSON files like `public/levels/test-1.json`:
 ```
 
 `Game::loadLevel(emscripten::val level)` parses this at runtime (clearing the hard-coded fallback platforms).
+Levels can optionally include a `"camera"` object with `followY`, `verticalDeadzone`, and `lookAheadY` to enable vertical camera follow per level.
+If `"camera"` is omitted, camera behavior stays backward-compatible and remains X-follow only.
 
 ### Audio
 
@@ -173,7 +191,7 @@ Sound events are triggered from C++ via `setSoundCallback` → JS callback. Supp
 2. **Duplicate `App.tsx`.** Both `src/App.tsx` and `src/components/App.tsx` exist. `src/main.tsx` imports from `./components/App`, so `src/App.tsx` is dead code.
 3. **Legacy global WASM loader.** `custom.d.ts` and `loader.ts` still reference `window.createGameModule` and a dynamic `game.js` script injection. The current Vite build imports the module directly, so the fallback path is rarely used.
 4. **Hardcoded credentials in `deploy.py`.** The SFTP password is stored in plaintext. This is a security risk.
-5. **No automated tests.** There is no test runner, test directory, or CI configuration.
+5. **Tests now exist.** `npm run test` runs Vitest unit tests and `npm run test:e2e` runs the Playwright smoke check. The smoke test stubs the WASM module so it can run without an Emscripten build.
 
 ## Deployment
 

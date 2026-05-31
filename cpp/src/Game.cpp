@@ -11,6 +11,7 @@ Game::Game() {
     playerSize = {0.5f, 0.8f};
     cameraPosition = {0.0f, 0.0f};
     cameraTargetX = 0.0f;
+    cameraTargetY = 0.0f;
     playerAnimation = {"idle", 0, false};
     isGrounded = false;
     wasGrounded = false;
@@ -22,6 +23,8 @@ Game::Game() {
     targetMoveVelocity = 0.0f;
     soundCallback = emscripten::val::null();
     levelCompleteCallback = emscripten::val::null();
+    levelName = "test-1";
+    levelDescription = "";
 
     // Default ground/platforms (fallback if no level JSON loaded)
     platforms.push_back({ {-12.25f, -2.0f}, {110.0f, 0.2f} });
@@ -53,11 +56,29 @@ void Game::loadLevel(const emscripten::val& level) {
     goals.clear();
     goalTriggered.clear();
     hasLevelBounds = false;
+    cameraFollowY = false;
+    cameraVerticalDeadzone = 0.75f;
+    cameraLookAheadY = 0.8f;
 
     // Reset ability state on level load
     abilityState = AbilityState::Ready;
     abilityCooldownTimer = 0.0f;
     abilityActiveTimer = 0.0f;
+    levelName = "untitled-level";
+    levelDescription = "";
+
+    if (level.hasOwnProperty("name")) {
+        emscripten::val nameVal = level["name"];
+        if (!nameVal.isNull() && !nameVal.isUndefined()) {
+            levelName = nameVal.as<std::string>();
+        }
+    }
+    if (level.hasOwnProperty("description")) {
+        emscripten::val descriptionVal = level["description"];
+        if (!descriptionVal.isNull() && !descriptionVal.isUndefined()) {
+            levelDescription = descriptionVal.as<std::string>();
+        }
+    }
 
     // spawn
     if (level.hasOwnProperty("spawn")) {
@@ -122,9 +143,40 @@ void Game::loadLevel(const emscripten::val& level) {
             }
         }
     }
+
+    // Optional camera tuning (backward compatible: default is X-only follow)
+    if (level.hasOwnProperty("camera")) {
+        emscripten::val camera = level["camera"];
+        if (!camera.isNull() && !camera.isUndefined()) {
+            if (camera.hasOwnProperty("followY")) {
+                cameraFollowY = camera["followY"].as<bool>();
+            }
+            if (camera.hasOwnProperty("verticalDeadzone")) {
+                cameraVerticalDeadzone = std::max(0.0f, camera["verticalDeadzone"].as<float>());
+            }
+            if (camera.hasOwnProperty("lookAheadY")) {
+                cameraLookAheadY = camera["lookAheadY"].as<float>();
+            }
+        }
+    }
+
     // Set camera to player on load (instant, no lerp)
     cameraPosition.x = playerPosition.x;
     cameraTargetX = playerPosition.x;
+    if (cameraFollowY) {
+        cameraPosition.y = playerPosition.y;
+        cameraTargetY = playerPosition.y;
+    } else {
+        cameraPosition.y = 0.0f;
+        cameraTargetY = 0.0f;
+    }
+
+    if (hasLevelBounds) {
+        if (cameraPosition.x < levelMin.x) cameraPosition.x = levelMin.x;
+        if (cameraPosition.x > levelMax.x) cameraPosition.x = levelMax.x;
+        if (cameraPosition.y < levelMin.y) cameraPosition.y = levelMin.y;
+        if (cameraPosition.y > levelMax.y) cameraPosition.y = levelMax.y;
+    }
 }
 
 
@@ -459,10 +511,28 @@ void Game::update(float deltaTime) {
     cameraTargetX = playerPosition.x + lookahead;
     cameraPosition.x += (cameraTargetX - cameraPosition.x) * Physics::CAMERA_LERP_SPEED * deltaTime;
 
+    if (cameraFollowY) {
+        float lookaheadY = 0.0f;
+        if (std::abs(playerVelocity.y) > 0.5f) {
+            lookaheadY = (playerVelocity.y > 0.0f ? 1.0f : -1.0f) * cameraLookAheadY;
+        }
+        const float desiredY = playerPosition.y + lookaheadY;
+        const float deltaY = desiredY - cameraPosition.y;
+
+        if (std::abs(deltaY) > cameraVerticalDeadzone) {
+            cameraTargetY = desiredY - (deltaY > 0.0f ? cameraVerticalDeadzone : -cameraVerticalDeadzone);
+        } else {
+            cameraTargetY = cameraPosition.y;
+        }
+        cameraPosition.y += (cameraTargetY - cameraPosition.y) * Physics::CAMERA_LERP_SPEED * deltaTime;
+    }
+
     // Clamp camera to level bounds
     if (hasLevelBounds) {
         if (cameraPosition.x < levelMin.x) cameraPosition.x = levelMin.x;
         if (cameraPosition.x > levelMax.x) cameraPosition.x = levelMax.x;
+        if (cameraPosition.y < levelMin.y) cameraPosition.y = levelMin.y;
+        if (cameraPosition.y > levelMax.y) cameraPosition.y = levelMax.y;
     }
 
     // Check goals for completion
@@ -493,11 +563,17 @@ Vec2 Game::getPlayerSize() const { return playerSize; }
 
 const std::vector<Platform>& Game::getPlatforms() const { return platforms; }
 
+const std::vector<Platform>& Game::getGoals() const { return goals; }
+
 Vec2 Game::getCameraPosition() const { return cameraPosition; }
 
 AnimationState Game::getPlayerAnimationState() const { return playerAnimation; }
 
 const std::vector<Particle>& Game::getParticles() const { return particleSystem.getParticles(); }
+
+std::string Game::getLevelName() const { return levelName; }
+
+std::string Game::getLevelDescription() const { return levelDescription; }
 
 // === Bolts & Volts character system ===
 

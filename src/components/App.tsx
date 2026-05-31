@@ -27,7 +27,7 @@ const footerStyle: React.CSSProperties = {
 
 return (
     <div style={appStyle}>
-      <h1 style={headerStyle}>WASM-Venture</h1>
+      <h1 style={headerStyle}>Bolts &amp; Volts</h1>
       <div style={gameContainerStyle}>
         <GameCanvas />
       </div>

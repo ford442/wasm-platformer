@@ -20,8 +20,11 @@ public:
     Vec2 getPlayerSize() const;
     Vec2 getCameraPosition() const;
     const std::vector<Platform>& getPlatforms() const;
+    const std::vector<Platform>& getGoals() const;
     const std::vector<Particle>& getParticles() const;
     AnimationState getPlayerAnimationState() const;
+    std::string getLevelName() const;
+    std::string getLevelDescription() const;
 
     // === Two-character (Bolts & Volts) API ===
     float getMoveSpeed() const;
@@ -43,6 +46,10 @@ private:
     Vec2 playerSize;
     Vec2 cameraPosition;
     float cameraTargetX = 0.0f;
+    float cameraTargetY = 0.0f;
+    bool cameraFollowY = false;
+    float cameraVerticalDeadzone = 0.75f;
+    float cameraLookAheadY = 0.8f;
 
     AnimationState playerAnimation;
     PlayerState currentPlayerState = PlayerState::Idle;
@@ -50,6 +57,8 @@ private:
     std::vector<Platform> platforms;
     std::vector<Platform> goals;
     std::vector<bool> goalTriggered;
+    std::string levelName;
+    std::string levelDescription;
 
     bool isGrounded = false;
     bool wasGrounded = false;
