@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "npm run build:wasm && vite",
-    "build:wasm": "emcc cpp/src/main.cpp cpp/src/Game.cpp -O3 -s WASM=1 -s \"EXPORTED_FUNCTIONS=['_malloc','_free']\" -s \"EXPORTED_RUNTIME_METHODS=['ccall','cwrap']\" -s MODULARIZE=1 -s EXPORT_ES6=1 -s 'EXPORT_NAME=\"createWasmModule\"' -lembind -o src/wasm/main.js",
+    "build:wasm": "sh ./scripts/with-emsdk.sh emcc cpp/src/main.cpp cpp/src/Game.cpp -O3 -s WASM=1 -s \"EXPORTED_FUNCTIONS=['_malloc','_free']\" -s \"EXPORTED_RUNTIME_METHODS=['ccall','cwrap']\" -s MODULARIZE=1 -s EXPORT_ES6=1 -s 'EXPORT_NAME=\"createWasmModule\"' -lembind -o src/wasm/main.js",
     "build": "npm run build:wasm && tsc && vite build",
+    "build_colab": "EMSDK_PATH=/content/build_space/emsdk npm run build",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",

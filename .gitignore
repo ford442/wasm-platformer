@@ -36,6 +36,7 @@ Thumbs.db
 *.swo
 
 # Emscripten build artifacts
+.emscripten_cache/
 src/wasm/main.js
 src/wasm/main.wasm
 
